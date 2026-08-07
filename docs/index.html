@@ -1,0 +1,39 @@
+<!doctype html><meta charset="utf-8">
+<title>Flowfin</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{color-scheme:light dark;--g:#FAFAFA;--r:#fff;--i:#0E0E11;--i2:#63636B;--l:#E2E2E6;--s:#0A6CE8}
+@media(prefers-color-scheme:dark){:root{--g:#121216;--r:#1C1C22;--i:#ECECEF;--i2:#9C9CA6;
+  --l:rgba(255,255,255,.07);--s:#5B9CFF}}
+*{box-sizing:border-box}body{margin:0;background:var(--g);color:var(--i);
+  font:16px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.w{max-width:720px;margin:0 auto;padding:80px 24px 90px}
+h1{font-size:clamp(34px,6vw,56px);font-weight:700;letter-spacing:-.035em;margin:0}
+p{color:var(--i2);max-width:60ch}
+.lede{font-size:clamp(16px,2vw,19px);margin-top:18px}
+code{font-family:ui-monospace,Consolas,monospace;font-size:13.5px;background:var(--r);
+  border:1px solid var(--l);border-radius:6px;padding:2px 7px;color:var(--i)}
+.box{background:var(--r);border:1px solid var(--l);border-radius:12px;padding:20px 22px;margin-top:30px}
+.box h2{font-size:16px;margin:0 0 8px;font-weight:620}
+a{color:var(--s)}
+footer{margin-top:44px;font-size:13.5px;color:var(--i2)}
+</style>
+<div class="w">
+  <h1>Flowfin</h1>
+  <p class="lede">Plugins und native Clients f&uuml;r Jellyfin. Schlicht, schnell,
+  und ohne dass etwas sichtbar wartet.</p>
+  <div class="box">
+    <h2>Plugins installieren</h2>
+    <p>In Jellyfin unter <b>Dashboard &rarr; Plugins &rarr; Repositories</b> diese
+    Adresse eintragen:</p>
+    <p style="margin-top:10px"><code>https://flowfin.dev/manifest.json</code></p>
+  </div>
+  <div class="box">
+    <h2>Design-System</h2>
+    <p>Farbe, Schrift, Kacheln, Fokus &mdash; und das Geschwindigkeitsbudget, an dem
+    sich jeder Client messen lassen muss.
+    <a href="design-system.html">Ansehen</a></p>
+  </div>
+  <footer>Flowfin steht in keiner Verbindung zum Jellyfin-Projekt.</footer>
+</div>
