@@ -35,20 +35,20 @@ list.
 
 A real release is what settles this, because the filename convention people
 assume is there is not there. These are the assets of the newest release of the
-one plugin that has any:
+plugin that has published the most of them:
 
-    gh api repos/iderex/jellyfin-plugin-sso/releases/latest --jq '.tag_name, ([.assets[].name] | sort | .[])'
-    4.3.0-beta.27
+    gh api repos/Flowfin/jellyfin-plugin-sso/releases/latest --jq '.tag_name, ([.assets[].name] | sort | .[])'
+    4.3.0-beta.28
     build.yaml
-    community-sso-for-jellyfin_4.3.0.27.md5
-    community-sso-for-jellyfin_4.3.0.27.sha256
-    community-sso-for-jellyfin_4.3.0.27.zip
-    community-sso-for-jellyfin_4.3.0.27.zip.md5sum
-    community-sso-for-jellyfin_4.3.0.27.zip.meta.json
+    community-sso-for-jellyfin_4.3.0.28.md5
+    community-sso-for-jellyfin_4.3.0.28.sha256
+    community-sso-for-jellyfin_4.3.0.28.zip
+    community-sso-for-jellyfin_4.3.0.28.zip.md5sum
+    community-sso-for-jellyfin_4.3.0.28.zip.meta.json
     sbom.cyclonedx.json
     sbom.cyclonedx.sha256
 
-Run 2026-08-08. The archive is `community-sso-for-jellyfin_4.3.0.27.zip`, and it
+Run 2026-08-08. The archive is `community-sso-for-jellyfin_4.3.0.28.zip`, and it
 has two MD5 sidecars under two different spellings. One drops the `.zip` before
 the suffix and one keeps it and uses a different suffix. A rule saying "the
 archive's name plus `.md5`" resolves neither of them, and a rule saying "the
@@ -58,13 +58,13 @@ SBOM's checksum somewhere else.
 Reading the contents removes the guesswork, because the sidecar format carries
 the filename it is about:
 
-    B=https://github.com/iderex/jellyfin-plugin-sso/releases/download/4.3.0-beta.27
-    curl -sSL "$B/community-sso-for-jellyfin_4.3.0.27.md5"
-    c2b9ab45ca368b55ecd88527df302302  community-sso-for-jellyfin_4.3.0.27.zip
-    curl -sSL "$B/community-sso-for-jellyfin_4.3.0.27.zip.md5sum"
-    c2b9ab45ca368b55ecd88527df302302 *community-sso-for-jellyfin_4.3.0.27.zip
+    B=https://github.com/Flowfin/jellyfin-plugin-sso/releases/download/4.3.0-beta.28
+    curl -sSL "$B/community-sso-for-jellyfin_4.3.0.28.md5"
+    be61dfe1e2b9101cd5c27169d4be8361  community-sso-for-jellyfin_4.3.0.28.zip
+    curl -sSL "$B/community-sso-for-jellyfin_4.3.0.28.zip.md5sum"
+    be61dfe1e2b9101cd5c27169d4be8361 *community-sso-for-jellyfin_4.3.0.28.zip
     curl -sSL "$B/sbom.cyclonedx.sha256"
-    81f0e61a062f2d5fa05d7641f8d2dc7361e3eeb7074bdfa27f82eee5830c00cd  sbom.cyclonedx.json
+    9375f49fd9f638a8dbf299ff2149216c07159b953e011aedbb020347f938413d  sbom.cyclonedx.json
 
 All run 2026-08-08. So the rule is:
 

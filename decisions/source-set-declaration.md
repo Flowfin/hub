@@ -80,14 +80,14 @@ the authority for it rather than this sentence.
 ## The case this format has to make expressible
 
 A declared repository with nothing to publish is the ordinary case here, not the
-edge. Today it is eleven of twelve:
+edge. Today it is ten of twelve:
 
     for r in discover invites metadata-sync requests server-pairing share-links \
              smart-collections sso stats watch-sync watchlist whisper-subtitles; do
-      printf "%s %s\n" "$r" "$(gh api "repos/iderex/jellyfin-plugin-$r/releases?per_page=100" --jq 'length')"
+      printf "%s %s\n" "$r" "$(gh api "repos/Flowfin/jellyfin-plugin-$r/releases?per_page=100" --jq 'length')"
     done
 
-Run 2026-08-08. It printed 52 for `sso` and 0 for the other eleven.
+Run 2026-08-08. It printed 54 for `sso`, 1 for `requests` and 0 for the other ten.
 
 So a record has to be able to say "this plugin is declared and has published
 nothing" without that being indistinguishable from an error, and without anybody
