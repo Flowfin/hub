@@ -60,11 +60,22 @@ Writing them is milestone 8, specifically #49, and it is not done here.
 
 ## What refuses a violation
 
-Nothing, today. Everything above is prose, and prose does not refuse a webfont.
+`site-fetches-nothing-outside`, a named leg of the gate, in `internal/site`. It
+refuses a served page that would load anything from another host, and a served
+page that carries no content policy or one that is not restrictive by default.
+Every refusal has a fixture that trips it.
 
-#50 is the check: a named leg of the gate that reds when a tracked page
-references an outside host, demonstrated biting on a planted reference, plus the
-same rule expressed as a policy the browser enforces for visitors. Until it
-lands, the posture holds because nobody has broken it yet, which is a different
-statement from the posture being enforced, and it should not be written up as
-the second one.
+The browser half is weaker than the tree half and the difference is worth
+knowing. The pages are served by GitHub Pages, which serves static files and sets
+no response header, so the policy is a `meta` element. A policy delivered that way
+cannot carry `frame-ancestors`, `report-uri` or `sandbox`; browsers ignore those
+there. The directives that stop a load from another host do work in a `meta`
+element, which is what this rule needs, but a reader should not take the page as
+carrying a full policy.
+
+What the leg does not reach: everything above this section that is not a page
+under `docs/`. Analytics added somewhere other than the site, a log of who fetched
+the manifest, and an identifier that differs per install are all still prose. So
+is a hyperlink: an anchor to another site is a navigation the visitor chooses,
+nothing is sent until they click, and refusing one would be a rule against linking
+rather than against tracking.

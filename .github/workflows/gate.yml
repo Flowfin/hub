@@ -1,0 +1,135 @@
+# The merge gate: build, test, format.
+#
+# One job per leg, and each job runs the same entry point a contributor runs
+# before pushing. A job is not a place where a decision is taken here; every
+# step below is `go run . gate <leg>`, so what the job checks and what the shell
+# checks cannot drift apart.
+#
+# The job names are what a pull request shows and what the ruleset in #48 would
+# require, so they carry a prefix. The bare words build, deploy and
+# report-build-status are already in use on main by the Pages deployment, which
+# has no file in this tree. internal/gate.JobNamePrefix holds the prefix and the
+# suite refuses a leg with no job here and a job here with no leg.
+name: Gate
+
+on:
+  # Both triggers, and this is the choice #18 asked to be made rather than left.
+  # A pull-request-only gate never appears on main, so the check-run list on main
+  # would go on showing only the workflows that predate this file. A push-only
+  # gate does not report on a fork's pull request.
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: no leg writes to the repository.
+permissions:
+  contents: read
+
+# A superseded run on the same ref is cancelled. Every leg is a read of the
+# tree, so nothing here is left half-done by a cancellation.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: "Gate: build"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # go.mod is the authority for the version floor, so it is read rather
+          # than restated here where it would drift.
+          go-version-file: go.mod
+      - run: go run . gate build
+
+  test:
+    name: "Gate: test"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # decisions/headless-and-unelevated.md says the suite runs with no display.
+    # Emptying the variable is the cheap half of demonstrating it: it holds even
+    # on a runner image that grows a display server later.
+    env:
+      DISPLAY: ""
+      WAYLAND_DISPLAY: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: State what this runner supplies
+        # The half that is not free, said out loud rather than left to be
+        # assumed. A green suite here is evidence about the display and is not
+        # evidence about elevation, and which of the two this runner actually
+        # gives is printed instead of guessed. `sudo -n` never prompts; it fails
+        # rather than asking, which is why it is safe to ask in a job and would
+        # not be safe to ask on somebody's desktop.
+        run: |
+          if sudo -n true 2>/dev/null; then
+            echo "elevation: available without a password, so the suite passing here says nothing about the unelevated half; the tests-reach-nothing leg is what carries it"
+          else
+            echo "elevation: not available without a password on this runner"
+          fi
+          echo "display: DISPLAY=[${DISPLAY:-}] WAYLAND_DISPLAY=[${WAYLAND_DISPLAY:-}]"
+      - run: go run . gate test
+
+  format:
+    name: "Gate: format"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go run . gate format
+
+  tests-reach-nothing:
+    name: "Gate: tests-reach-nothing"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go run . gate tests-reach-nothing
+
+  no-hardcoded-names:
+    name: "Gate: no-hardcoded-names"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go run . gate no-hardcoded-names
+
+  site-fetches-nothing-outside:
+    name: "Gate: site-fetches-nothing-outside"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go run . gate site-fetches-nothing-outside

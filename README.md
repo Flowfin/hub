@@ -64,6 +64,9 @@ else it discards a signal their eyes could have read.
 
 No state depends on hue alone, whatever the preset.
 
-## Licence and use
+## License
 
-See [NOTICE.md](NOTICE.md).
+This repository is under the GNU Affero General Public License, version 3.
+The full text is in [LICENSE](LICENSE).
+
+See [NOTICE.md](NOTICE.md) for the intended-use notice.

@@ -1,0 +1,8 @@
+{
+    "account": "Flowfin",
+    "repository": "jellyfin-plugin-sso",
+    "slug": "sso",
+    "stable_tags": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?(-stable)?$",
+    "enabled": true,
+    "note": "The pattern is measured rather than guessed: decisions/channel-model.md runs it over all 54 tags and it selects exactly the four finished ones. A rule reading hyphens instead would put 4.2.1-stable in the test channel."
+}

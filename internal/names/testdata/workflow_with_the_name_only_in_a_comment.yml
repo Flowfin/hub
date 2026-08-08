@@ -1,0 +1,9 @@
+# Fixture. Its comment cites a command against an-account and its steps do not.
+name: Planted
+on:
+  push:
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - run: go run . sources
