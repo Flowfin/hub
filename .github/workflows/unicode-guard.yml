@@ -2,7 +2,7 @@ name: unicode-guard
 
 on:
   # Every branch and every PR: the guard is a cheap read-only scan and must cover
-  # any future release branch too, not just main (one code line since #954).
+  # any future release branch too, not just main. There is one code line here.
   push:
     branches: ["**"]
   pull_request:
@@ -39,7 +39,7 @@ jobs:
           # in the PR diff, which defeats the visual-deception the attack relies on). Em dashes,
           # accents, and other benign non-ASCII are not in the set. U+2060 (word joiner) is
           # included as an invisible control with no legitimate use in source. U+FEFF (BOM) is
-          # deliberately NOT listed: a leading UTF-8 BOM is legitimate (solution files often carry one),
+          # deliberately NOT listed: a leading UTF-8 BOM is legitimate (several toolchains emit one),
           # so banning it outright would false-positive, and the bidi reordering attack does not
           # rely on it.
           pattern='(*UTF)[\x{202A}-\x{202E}\x{2066}-\x{2069}\x{200E}\x{200F}\x{061C}\x{200B}-\x{200D}\x{2060}]'
