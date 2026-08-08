@@ -5,17 +5,61 @@ published site, and the design system the clients are held to.
 
 ## Building and testing
 
-There is no build command and no test command in this tree today. The tree is
-documents, workflow files and two static pages, and `git ls-files` is the
-authority for that rather than a list here.
+    go build ./...
+    go test ./...
 
-Saying so is more useful than inventing a command, because a contributor who runs
-an invented one and gets an error cannot tell whether the repository is broken or
-the instruction is. The site under `docs/` opens in a browser with no build step.
+Both need the Go toolchain and nothing else installed. `go.mod` names the
+language floor and is the authority for it rather than this sentence.
+`decisions/means.md` is why Go, and why the test runner and the formatter are the
+ones that arrive with it.
 
-The toolchain lands in #17 and the single entry point that runs build, test and
-format lands in #18. `decisions/means.md` says which toolchain and why. When #18
-lands, this section names its command and this paragraph goes.
+The site under `docs/` still opens in a browser with no build step.
+
+### The dependency set is empty, and empty is not unlocked
+
+There is no `go.sum` in the tree, because nothing is required yet. A build does
+not quietly add one. The toolchain resolves imports in read-only mode by default,
+so an import the module does not already require is a build failure rather than a
+new line in the lock:
+
+    go build ./...
+    manifest/x.go:3:8: no required module provides package golang.org/x/text/language; to add it:
+            go get golang.org/x/text/language
+
+A dependency therefore arrives as a commit somebody made and reviewed, or it does
+not arrive. `go.sum` lands in the same commit as the first requirement.
+
+### What the test command proves today
+
+Nothing. There are no test files, so `go test ./...` prints that and exits zero:
+
+    go test ./...
+    ?       flowfin.dev/hub/manifest        [no test files]
+
+A green from it is not evidence about anything in the tree, and reading it as one
+is the failure #19 exists to repair.
+
+The single entry point that runs build, test and format as named legs lands in
+#18. When it does, this section names its command.
+
+## Where things live
+
+`manifest/` is the generator: the manifest document, the encoder that fixes its
+byte format, and the specimen of that format under `manifest/testdata/`.
+
+`docs/` is everything published at the site's address, which is why the design
+system lives there too even though it has a different audience and a different
+cadence from the landing page. Moving it out would change a URL that is already
+public. `docs/design-system.html` is the design system and `docs/index.html` is
+the site.
+
+`decisions/` is what has been settled and why, and it is not published.
+
+The separation that matters most is between the generator and everything
+published, because only the first one is a program. Whether the design system
+ends up under a different licence from the generator is entry 1 of #1, and the
+boundary that answer would fall on is `docs/design-system.html` plus the token
+file #39 extracts from it.
 
 ## What runs today
 
