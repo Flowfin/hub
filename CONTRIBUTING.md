@@ -58,8 +58,35 @@ What a green does not say is that a generated entry is right. The specimen round
 trips, so an edit to a checksum or a URL inside it passes. Refusing a wrong entry
 is #25 and #27, against the release it came from.
 
-The single entry point that runs build, test and format as named legs lands in
-#18. When it does, this section names its command.
+### The gate
+
+    go run . gate
+
+That is the whole gate, and it is one command rather than a list to remember.
+Its legs run in order, they stop at the first failure, and the run ends by saying
+how many of them it examined, so a run that covered two of three cannot be read
+as one that covered three and found nothing.
+
+The legs are build, test and format, which is what `decisions/means.md` settles
+them as. Which legs exist is printed rather than restated here, because a list in
+this file drifts against the one the command runs:
+
+    go run .
+
+names them. One leg at a time is `go run . gate format`, and that run says which
+legs it was not asked for, so a single-leg run cannot be mistaken for the gate.
+
+`.github/workflows/gate.yml` is one job per leg, and each job runs the same
+command with the leg's name after it. Nothing is decided in the workflow file
+that the command would not decide in your shell. The job names carry a prefix,
+because `build`, `deploy` and `report-build-status` are already taken on `main`
+by the Pages deployment, which has no file in this tree; `internal/gate` holds
+the prefix, and the suite refuses a leg with no job and a job with no leg.
+
+On a clone where the working copy has CRLF line endings, the format leg lists Go
+files you have not touched. The content is not wrong: gofmt does not normalise
+before judging, and only `*.json` is pinned to LF today. #23 is where that pin
+widens to the rest of the tree.
 
 ## Where things live
 
