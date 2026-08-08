@@ -1,0 +1,219 @@
+package sources
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"testing"
+	"testing/fstest"
+)
+
+// answers is a Lister made of a fixture. Every classification below is judged
+// against it, so no test in this package reaches the network and
+// gate-tests-reach-nothing has nothing to refuse here.
+type answers struct {
+	releases map[string][]Release
+	landedOn map[string]string
+	failures map[string]error
+}
+
+func (a answers) ListReleases(_ context.Context, account, repository string) ([]Release, string, error) {
+	path := account + "/" + repository
+	if err, ok := a.failures[path]; ok {
+		return nil, "", err
+	}
+	if _, ok := a.releases[path]; !ok {
+		return nil, "", ErrNotFound
+	}
+	landed := path
+	if other, ok := a.landedOn[path]; ok {
+		landed = other
+	}
+	return a.releases[path], landed, nil
+}
+
+func declare(t *testing.T, slug, repository string, enabled bool) Declaration {
+	t.Helper()
+	body := `{
+    "account": "an-account",
+    "repository": "` + repository + `",
+    "slug": "` + slug + `",
+    "stable_tags": "^v?[0-9]+\\.[0-9]+$",
+    "enabled": ` + map[bool]string{true: "true", false: "false"}[enabled] + `,
+    "note": "a fixture"
+}
+`
+	got, err := Load(fstest.MapFS{slug + ".json": &fstest.MapFile{Data: []byte(body)}})
+	if err != nil {
+		t.Fatalf("building the fixture declaration: %v", err)
+	}
+	return got[0]
+}
+
+// TestTheThreeCasesInTheIssueAreDistinguished is the Done-when of #24: a
+// declaration file with one resolvable repository, one that does not exist and
+// one with no releases, and the run telling all three apart in its output.
+func TestTheThreeCasesInTheIssueAreDistinguished(t *testing.T) {
+	resolvable := declare(t, "resolvable", "plugin-resolvable", true)
+	absent := declare(t, "absent", "plugin-absent", true)
+	empty := declare(t, "empty", "plugin-empty", true)
+
+	lister := answers{releases: map[string][]Release{
+		resolvable.Path(): {{Tag: "v1.2"}, {Tag: "1.3-beta.1", Prerelease: true}},
+		empty.Path():      {},
+	}}
+
+	got := Resolve(context.Background(), lister, []Declaration{resolvable, absent, empty})
+	want := map[string]State{"resolvable": Resolved, "absent": Unresolvable, "empty": NoReleases}
+	for _, r := range got {
+		if w := want[r.Declaration.Slug]; r.State != w {
+			t.Errorf("%s: state %v, want %v (%s)", r.Declaration.Slug, r.State, w, r.Detail)
+		}
+	}
+
+	report := Report(got)
+	for _, phrase := range []string{
+		"absent               does not resolve",
+		"empty                no releases",
+		"resolvable           resolved",
+		"1 of 3 declared plugin(s) resolved",
+	} {
+		if !strings.Contains(report, phrase) {
+			t.Errorf("the report does not say %q:\n%s", phrase, report)
+		}
+	}
+
+	// The three are told apart in the verdict as well as in the words: one of
+	// them stops the run and the other two do not.
+	if err := Judge(got); err == nil {
+		t.Fatal("a declaration pointing at nothing did not stop the run")
+	} else if !strings.Contains(err.Error(), "absent") {
+		t.Fatalf("the verdict does not name the declaration that failed: %v", err)
+	}
+}
+
+func TestANotFoundNamesBothReasonsAndClaimsNeither(t *testing.T) {
+	// A repository that was never created and one the credential cannot see both
+	// answer with a not-found, and nothing in the response separates them.
+	absent := declare(t, "absent", "plugin-absent", true)
+	got := Resolve(context.Background(), answers{}, []Declaration{absent})
+	detail := got[0].Detail
+	if !strings.Contains(detail, "does not exist") || !strings.Contains(detail, "cannot see it") {
+		t.Fatalf("the message picks one of the two reasons: %q", detail)
+	}
+}
+
+func TestAReadThatFailedIsFatalAndIsNotAnEmptyRepository(t *testing.T) {
+	// The case that most needs to be fatal: its symptom is a short list, which
+	// looks exactly like success.
+	broken := declare(t, "broken", "plugin-broken", true)
+	lister := answers{failures: map[string]error{broken.Path(): errors.New("429 Too Many Requests")}}
+
+	got := Resolve(context.Background(), lister, []Declaration{broken})
+	if got[0].State != Unreadable {
+		t.Fatalf("a failed read was classified as %v", got[0].State)
+	}
+	if !got[0].State.Fatal() {
+		t.Fatal("a failed read does not stop the run")
+	}
+}
+
+func TestARenamedRepositoryIsNotReadAsACorrectDeclaration(t *testing.T) {
+	// The case that is not a failure today and becomes one with no error at all.
+	// The request answers, returns releases, and is for a different repository
+	// than the one declared.
+	moved := declare(t, "moved", "plugin-moved", true)
+	lister := answers{
+		releases: map[string][]Release{moved.Path(): {{Tag: "v1.0"}}},
+		landedOn: map[string]string{moved.Path(): "another-account/plugin-moved"},
+	}
+
+	got := Resolve(context.Background(), lister, []Declaration{moved})
+	if got[0].State != Redirected {
+		t.Fatalf("a declaration answered under another name was classified as %v", got[0].State)
+	}
+	if !strings.Contains(got[0].Detail, "another-account/plugin-moved") {
+		t.Fatalf("the message does not say which path answered: %q", got[0].Detail)
+	}
+	if err := Judge(got); err == nil {
+		t.Fatal("a declaration answered under another name did not stop the run")
+	}
+}
+
+func TestAPluginWithOnlyTestBuildsIsCountedRatherThanRefused(t *testing.T) {
+	// Different from having published nothing, and the output says which.
+	betas := declare(t, "betas", "plugin-betas", true)
+	lister := answers{releases: map[string][]Release{
+		betas.Path(): {{Tag: "1.1-beta.1"}, {Tag: "1.1-beta.2"}},
+	}}
+
+	got := Resolve(context.Background(), lister, []Declaration{betas})
+	if got[0].State != NoFinishedReleases {
+		t.Fatalf("state %v", got[0].State)
+	}
+	if got[0].State.Fatal() {
+		t.Fatal("a plugin that has only published test builds stopped the run")
+	}
+	if got[0].Test != 2 {
+		t.Fatalf("counted %d test builds, want 2", got[0].Test)
+	}
+}
+
+func TestADisabledRecordIsNotRead(t *testing.T) {
+	off := declare(t, "off", "plugin-off", false)
+	// The lister would answer not-found for it, which would be fatal if it were
+	// asked. A disabled record is not asked.
+	got := Resolve(context.Background(), answers{}, []Declaration{off})
+	if got[0].State != Disabled {
+		t.Fatalf("state %v", got[0].State)
+	}
+	if err := Judge(got); err == nil || strings.Contains(err.Error(), "not-found") {
+		t.Fatalf("a disabled record was read: %v", err)
+	}
+}
+
+func TestARunThatResolvesNothingIsFatal(t *testing.T) {
+	// The longest section of decisions/failure-posture.md. A run whose
+	// credentials expired produces exactly the file a correct run over an empty
+	// set would produce, so zero is refused rather than published.
+	empty := declare(t, "empty", "plugin-empty", true)
+	lister := answers{releases: map[string][]Release{empty.Path(): {}}}
+
+	got := Resolve(context.Background(), lister, []Declaration{empty})
+	if got[0].State.Fatal() {
+		t.Fatal("an empty repository was treated as an error in its own right")
+	}
+	err := Judge(got)
+	if err == nil {
+		t.Fatal("a run that resolved nothing was allowed to publish")
+	}
+	if !strings.Contains(err.Error(), "empty catalogue is a decision") {
+		t.Fatalf("the verdict does not say what the alternative is: %v", err)
+	}
+}
+
+func TestEveryDeclarationAppearsInTheReport(t *testing.T) {
+	// A manifest that is short because releases were skipped and one that is
+	// short because there was nothing to add are the same file. Only the output
+	// tells them apart, so nothing may be missing from it.
+	var declarations []Declaration
+	for _, slug := range []string{"zeta", "alpha", "mid"} {
+		declarations = append(declarations, declare(t, slug, "plugin-"+slug, true))
+	}
+	lister := answers{releases: map[string][]Release{
+		"an-account/plugin-zeta":  {{Tag: "v1.0"}},
+		"an-account/plugin-alpha": {},
+		"an-account/plugin-mid":   {},
+	}}
+
+	report := Report(Resolve(context.Background(), lister, declarations))
+	for _, slug := range []string{"alpha", "mid", "zeta"} {
+		if !strings.Contains(report, slug) {
+			t.Errorf("%s is missing from the report:\n%s", slug, report)
+		}
+	}
+	// Sorted, so two runs over one set produce one order.
+	if a, m := strings.Index(report, "alpha"), strings.Index(report, "mid"); a > m {
+		t.Errorf("the report is not in slug order:\n%s", report)
+	}
+}

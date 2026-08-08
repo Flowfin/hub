@@ -1,0 +1,8 @@
+{
+    "account": "Flowfin",
+    "repository": "jellyfin-plugin-whisper-subtitles",
+    "slug": "whisper-subtitles",
+    "stable_tags": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?(-stable)?$",
+    "enabled": true,
+    "note": "Has published no release. Declared and enabled so that the catalogue grows on the day it publishes its first one, with no change here.. The pattern is the one measured against the only long release history in the set; it is a starting point for a repository with no tags to check it against, and the first release it publishes is when it is confirmed."
+}

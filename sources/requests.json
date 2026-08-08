@@ -1,0 +1,8 @@
+{
+    "account": "Flowfin",
+    "repository": "jellyfin-plugin-requests",
+    "slug": "requests",
+    "stable_tags": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?(-stable)?$",
+    "enabled": true,
+    "note": "One release, tagged 0.1.0.0-stable, which this pattern selects."
+}

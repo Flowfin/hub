@@ -15,12 +15,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
 	"flowfin.dev/hub/internal/gate"
+	"flowfin.dev/hub/internal/releases"
+	"flowfin.dev/hub/internal/sources"
 )
 
 func main() {
@@ -39,10 +42,36 @@ func run(args []string, out io.Writer) error {
 	switch args[0] {
 	case "gate":
 		return runGate(args[1:], out)
+	case "sources":
+		return runSources(out)
 	default:
 		usage(out)
 		return fmt.Errorf("unknown verb %q", args[0])
 	}
+}
+
+// runSources reads the declared set and says what each declaration resolved to.
+//
+// It reaches the network, which is why it is a verb somebody runs rather than a
+// leg of the gate: decisions/headless-and-unelevated.md keeps a merge from
+// depending on somebody else's service being up. Every classification it prints
+// is judged against a fixture in internal/sources, so what this verb adds is the
+// answer about the world rather than the logic that reads it.
+func runSources(out io.Writer) error {
+	declarations, err := sources.Load(os.DirFS(sources.Dir))
+	if err != nil {
+		return err
+	}
+
+	client := releases.New()
+	// The token is read from the environment rather than declared anywhere. A
+	// run without one still works against public repositories and meets the rate
+	// limit sooner, which is a read that failed rather than an empty catalogue.
+	client.Token = os.Getenv("GITHUB_TOKEN")
+
+	resolutions := sources.Resolve(context.Background(), client, declarations)
+	fmt.Fprint(out, sources.Report(resolutions))
+	return sources.Judge(resolutions)
 }
 
 func runGate(asked []string, out io.Writer) error {
@@ -62,6 +91,6 @@ func runGate(asked []string, out io.Writer) error {
 }
 
 func usage(out io.Writer) {
-	fmt.Fprintf(out, "usage: go run . gate [leg...]\n\nthe legs, in order: %s\n",
+	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . sources\n\nthe legs, in order: %s\n",
 		strings.Join(gate.Names(gate.Legs()), ", "))
 }
