@@ -86,17 +86,30 @@ statement that it passed.
 
 ## The check that refuses a gate test reaching outside the rule
 
-`gate-tests-reach-nothing`, a named leg of the gate, built by #20.
+`gate-tests-reach-nothing`, a named leg of the gate, in `internal/reach`.
 
 It refuses a test compiled into the gate that reaches for a display, an elevated
-operation, or the network. Naming it here is not the same as having it: until #20
-lands, a test that opened a socket would be caught by review or not at all, and a
-gate that has never refused such a test is not evidence that it would.
+operation, the network, a second program, or a port below 1024.
 
-The check needs a declared scope, because the harness in #21 contains exactly the
-tests it refuses, and the tests are the same language and the same runner by
-design. Drawing that scope is part of #20 rather than an exception carved out of
-it afterwards.
+What it judges is the reach rather than the result. A test that attempts one of
+those things fails on a bare runner because the thing is absent and passes on a
+desktop that has it, so a check reading outcomes is loudest where the rule is
+already being kept and silent where it is being broken. Reading the source gives
+the same verdict on both machines, and it is the only shape under which elevation
+can be judged at all: attempting an elevated call to see what happens is the
+consent prompt this rule exists to prevent.
+
+The scope is drawn by the build constraint. A test file carrying a tag that names
+a requirement is the harness's and is spared, because the harness contains exactly
+the tests this check refuses and does so by design. `internal/reach` requires the
+prefix of those tags and leaves their full spelling to #21.
+
+Two limits, because a floor stated as a proof is worse than no floor. An address
+assembled from parts at run time is not visible to a reader of the source and is
+not refused. And of the things this file lists, three are outside what the check
+reads: a write outside the test's own temporary directory, a change to a
+machine-wide setting, and a dependence on the clock or the locale. Those are held
+by review today and by nothing else.
 
 ## What this costs
 

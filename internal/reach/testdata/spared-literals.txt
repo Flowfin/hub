@@ -1,0 +1,11 @@
+# One literal per line that must not be refused. This is the half of the
+# vocabulary that goes wrong: a rule matching a substring of a longer name turns
+# an ordinary plugin into an elevation.
+sudoku
+sudoku-solver_1.0.0.0.zip
+displays
+:1024
+:8096
+:0
+not-an-address
+manifest.json

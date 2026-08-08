@@ -53,6 +53,12 @@ jobs:
     name: "Gate: test"
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # decisions/headless-and-unelevated.md says the suite runs with no display.
+    # Emptying the variable is the cheap half of demonstrating it: it holds even
+    # on a runner image that grows a display server later.
+    env:
+      DISPLAY: ""
+      WAYLAND_DISPLAY: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -60,6 +66,20 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      - name: State what this runner supplies
+        # The half that is not free, said out loud rather than left to be
+        # assumed. A green suite here is evidence about the display and is not
+        # evidence about elevation, and which of the two this runner actually
+        # gives is printed instead of guessed. `sudo -n` never prompts; it fails
+        # rather than asking, which is why it is safe to ask in a job and would
+        # not be safe to ask on somebody's desktop.
+        run: |
+          if sudo -n true 2>/dev/null; then
+            echo "elevation: available without a password, so the suite passing here says nothing about the unelevated half; the tests-reach-nothing leg is what carries it"
+          else
+            echo "elevation: not available without a password on this runner"
+          fi
+          echo "display: DISPLAY=[${DISPLAY:-}] WAYLAND_DISPLAY=[${WAYLAND_DISPLAY:-}]"
       - run: go run . gate test
 
   format:
@@ -74,3 +94,16 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go run . gate format
+
+  tests-reach-nothing:
+    name: "Gate: tests-reach-nothing"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go run . gate tests-reach-nothing
