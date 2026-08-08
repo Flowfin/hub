@@ -43,23 +43,23 @@ word anywhere in its body, not its position in the list the API returns.
 
 The obvious separator is the pre-release flag on the release itself, and it is
 wrong here for a reason that is measurable rather than theoretical. The flag and
-the tag disagree in this repository, on ten of fifty-two releases:
+the tag disagree in this repository, on eleven of fifty-four releases:
 
-    gh api 'repos/iderex/jellyfin-plugin-sso/releases?per_page=100' \
+    gh api 'repos/Flowfin/jellyfin-plugin-sso/releases?per_page=100' \
       --jq '{total: length, flagged_prerelease: [.[]|select(.prerelease)]|length,
              tag_says_beta: [.[]|select(.tag_name|test("beta"))]|length,
              beta_tag_flagged_stable: [.[]|select((.tag_name|test("beta")) and (.prerelease|not))]|length}'
-    {"beta_tag_flagged_stable":10,"flagged_prerelease":38,"tag_says_beta":48,"total":52}
+    {"beta_tag_flagged_stable":11,"flagged_prerelease":39,"tag_says_beta":50,"total":54}
 
-Run 2026-08-08. Ten releases whose tag says beta are not flagged as pre-releases.
-The reason a project does that is ordinary and has nothing to do with the
-catalogue: a release that is not flagged is the one the repository page shows as
-the latest, and here that is a beta:
+Run 2026-08-08. Eleven releases whose tag says beta are not flagged as
+pre-releases. The reason a project does that is ordinary and has nothing to do
+with the catalogue: a release that is not flagged is the one the repository page
+shows as the latest, and here that is a beta:
 
-    gh api repos/iderex/jellyfin-plugin-sso/releases/latest --jq '{tag: .tag_name, prerelease}'
-    {"prerelease":false,"tag":"4.3.0-beta.27"}
+    gh api repos/Flowfin/jellyfin-plugin-sso/releases/latest --jq '{tag: .tag_name, prerelease}'
+    {"prerelease":false,"tag":"4.3.0-beta.28"}
 
-Run 2026-08-08. Under a flag-based separator those ten builds are in the finished
+Run 2026-08-08. Under a flag-based separator those eleven builds are in the finished
 list, and the four-component version of a test build can sort above the finished
 build it was testing against, so an operator who asked for finished builds is
 offered a beta as the newest thing available.
@@ -76,7 +76,7 @@ version pre-release part, meaning anything after the first hyphen. It is wrong
 here, and it is worth writing down which tag breaks it, because the tag looks like
 the safest one in the set:
 
-    gh api 'repos/iderex/jellyfin-plugin-sso/releases?per_page=100' \
+    gh api 'repos/Flowfin/jellyfin-plugin-sso/releases?per_page=100' \
       --jq '[.[].tag_name | select(test("beta")|not)]'
     ["4.2.1-stable","4.2.0-stable","4.1.1-stable","v4.1.0.0"]
 
@@ -84,21 +84,21 @@ Run 2026-08-08. `4.2.1-stable` has a pre-release part that says the opposite of
 what a pre-release part means. A rule reading hyphens puts the three finished
 releases in the test channel and leaves the finished list with one entry.
 
-So the separator is per plugin and it is declared. For the one sourced repository
-with releases today the pattern is
+So the separator is per plugin and it is declared. For the repository with the
+longest release history the pattern is
 
     ^v?[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-stable)?$
 
-and it selects exactly those four tags out of fifty-two:
+and it selects exactly those four tags out of fifty-four:
 
-    gh api 'repos/iderex/jellyfin-plugin-sso/releases?per_page=100' --jq '.[].tag_name' > tags.txt
+    gh api 'repos/Flowfin/jellyfin-plugin-sso/releases?per_page=100' --jq '.[].tag_name' > tags.txt
     python -c "
     import re
     p=re.compile(r'^v?[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-stable)?\$')
     t=[x.strip() for x in open('tags.txt') if x.strip()]
     m=[x for x in t if p.match(x)]
     print('total',len(t),'matched',len(m),m)"
-    total 52 matched 4 ['4.2.1-stable', '4.2.0-stable', '4.1.1-stable', 'v4.1.0.0']
+    total 54 matched 4 ['4.2.1-stable', '4.2.0-stable', '4.1.1-stable', 'v4.1.0.0']
 
 Run 2026-08-08.
 

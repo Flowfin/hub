@@ -20,14 +20,18 @@ opening a browser.
 
 ## Which plugins the catalogue carries
 
-One. The single sourced repository that has releases.
+One, and that is a decision argued below rather than a count read off the
+repositories. The count has moved since it was argued:
 
     for r in discover invites metadata-sync requests server-pairing share-links \
              smart-collections sso stats watch-sync watchlist whisper-subtitles; do
-      printf "%s %s\n" "$r" "$(gh api "repos/iderex/jellyfin-plugin-$r/releases?per_page=100" --jq 'length')"
+      printf "%s %s\n" "$r" "$(gh api "repos/Flowfin/jellyfin-plugin-$r/releases?per_page=100" --jq 'length')"
     done
 
-Run 2026-08-08: 52 for `sso`, 0 for the other eleven.
+Run 2026-08-08: 54 for `sso`, 1 for `requests`, 0 for the other ten. The second of
+those was zero when this section was written, so the argument below was made
+against a set of one and now describes a choice between one and two. Which of them
+the first release carries is #65 and is not settled here.
 
 So the first release either waits for plugins that do not exist yet, or it ships
 a catalogue with one entry. One entry is the answer, for two reasons that are

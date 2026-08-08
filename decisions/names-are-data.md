@@ -1,15 +1,29 @@
 # The account and organisation names are data, never constants in the source
 
-Two names run through this project and they are not the same name. The plugins
-are released under the account `iderex`. The catalogue and the site are published
-under the organisation `Flowfin`. Either can move, and the move is somebody
-else's decision made for somebody else's reason.
+Two names run through this project. The catalogue and the site are published
+under the organisation `Flowfin`, and the repositories the plugins are released
+from are under it as well:
+
+    gh api repos/Flowfin/jellyfin-plugin-sso --jq '{full_name, visibility}'
+    {"full_name":"Flowfin/jellyfin-plugin-sso","visibility":"public"}
+
+Run 2026-08-08. They have not always been one name. The plugin repositories sat
+under a personal account when this file was written, and they were moved into the
+organisation afterwards. Either name can move again, and the move is somebody
+else's decision made for somebody else's reason, so one name today is a fact
+about today and not a simplification to build on.
 
 Every place in this repository that spells one of them out is a place that has to
 be found and edited when that happens. The ones that get missed do not fail
 loudly. They publish a manifest that points at a repository nobody owns any more,
 and a server reading it reports an empty catalogue or a download that will not
 verify, with nothing in the interface saying why.
+
+This file was the first thing to be missed. It stated the old account for as long
+as it took somebody to run the commands its neighbours quote and notice that a
+request for the moved path still answers, because GitHub follows a rename. That
+is the failure above in its quietest form: nothing errors, and the tree reads as
+verified while pointing at a name that stops answering the day the redirect does.
 
 The scale of the alternative is not a guess. #6 is where the count is recorded:
 the same class of assumption, allowed to spread elsewhere, had to be removed

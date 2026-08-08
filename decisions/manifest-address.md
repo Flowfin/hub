@@ -43,15 +43,19 @@ resolves and the site answers, and the printed install address still does not:
 Both run 2026-08-08 against the tree at 6a98de6. A rule written against DNS
 alone would read that pair as satisfied.
 
-Two tracked files print the address today:
+Two tracked files printed the address, and #35 removed both:
 
-    grep -rno 'https://[a-zA-Z0-9./_-]*manifest.json' -- README.md docs/
-    README.md:13:https://flowfin.dev/manifest.json
-    docs/index.html:30:https://flowfin.dev/manifest.json
+    grep -rno 'https://[a-zA-Z0-9./_-]*manifest.json' -- README.md docs/ ; echo "exit=$?"
+    exit=1
 
-Run 2026-08-08 at 6a98de6. Repairing those two files is #35. Turning the
-condition above into a check that refuses the next one is #34. This file states
-the rule they are measured against and does neither.
+Run 2026-08-08. Nothing is printed and the grep exits 1. What the operator-facing
+files say instead is that installation is not available yet, which is true and is
+what an address that answers 404 leaves them able to say.
+
+The pair of requests above stays here because this is where the address is
+argued, and recording a 404 is not the same act as printing an install
+instruction. Turning the condition above into a check that refuses the next file
+to print one is #34. This file states the rule and does not enforce it.
 
 ## What this costs
 

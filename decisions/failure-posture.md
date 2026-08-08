@@ -78,11 +78,11 @@ an error. This is the ordinary case here rather than an edge:
 
     for r in discover invites metadata-sync requests server-pairing share-links \
              smart-collections sso stats watch-sync watchlist whisper-subtitles; do
-      printf "%s %s\n" "$r" "$(gh api "repos/iderex/jellyfin-plugin-$r/releases?per_page=100" --jq 'length')"
+      printf "%s %s\n" "$r" "$(gh api "repos/Flowfin/jellyfin-plugin-$r/releases?per_page=100" --jq 'length')"
     done
 
-Run 2026-08-08. It printed 52 for `sso` and 0 for the other eleven, so eleven of
-twelve declared plugins are in this state today.
+Run 2026-08-08. It printed 54 for `sso`, 1 for `requests` and 0 for the other ten,
+so ten of twelve declared plugins are in this state today.
 
 A declared repository whose releases all fall on the other side of the channel
 split. Also reported by name and counted, and not an error, because a plugin that

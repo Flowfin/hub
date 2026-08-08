@@ -34,15 +34,15 @@ Run 2026-08-08. What the operator sees is an install that does not finish, and
 nothing in the interface saying which of the two numbers was wrong.
 
 The whole failure is reproducible without a server, because the only number that
-matters is one anybody can compute. Take the archive of the one sourced release
-that exists today and hash it:
+matters is one anybody can compute. Take the archive of the newest sourced release
+and hash it:
 
-    B=https://github.com/iderex/jellyfin-plugin-sso/releases/download/4.3.0-beta.27
-    curl -sSL -o sso.zip "$B/community-sso-for-jellyfin_4.3.0.27.zip"
+    B=https://github.com/Flowfin/jellyfin-plugin-sso/releases/download/4.3.0-beta.28
+    curl -sSL -o sso.zip "$B/community-sso-for-jellyfin_4.3.0.28.zip"
     md5sum sso.zip
-    c2b9ab45ca368b55ecd88527df302302 *sso.zip
+    be61dfe1e2b9101cd5c27169d4be8361 *sso.zip
 
-Run 2026-08-08. That is the value a version entry for `4.3.0.27` has to carry, and
+Run 2026-08-08. That is the value a version entry for `4.3.0.28` has to carry, and
 a hand-written entry carries whatever was pasted into it. Change one character of
 it and the comparison on line 559 fails for every operator on every server, with
 the file still well-formed JSON and every other field still right.
@@ -51,7 +51,7 @@ There is a sharper version of the same failure, and it is not hypothetical. The
 same release carries a checksum for a different file:
 
     curl -sSL "$B/sbom.cyclonedx.sha256"
-    81f0e61a062f2d5fa05d7641f8d2dc7361e3eeb7074bdfa27f82eee5830c00cd  sbom.cyclonedx.json
+    9375f49fd9f638a8dbf299ff2149216c07159b953e011aedbb020347f938413d  sbom.cyclonedx.json
 
 Run 2026-08-08. Pasting that value against the archive produces an entry that
 looks stronger than the right one and fails every install.
