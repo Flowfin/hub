@@ -22,9 +22,19 @@ not quietly add one. The toolchain resolves imports in read-only mode by default
 so an import the module does not already require is a build failure rather than a
 new line in the lock:
 
-    go build ./...
-    manifest/x.go:3:8: no required module provides package golang.org/x/text/language; to add it:
+    printf 'package manifest\n\nimport _ "golang.org/x/text/language"\n' > manifest/x.go
+    go build ./... ; echo "exit=$?"
+    manifest\x.go:3:8: no required module provides package golang.org/x/text/language; to add it:
             go get golang.org/x/text/language
+    exit=1
+
+Run on Windows, which is why the compiler prints the path with a backslash;
+the separator is the platform's and not part of the message. `go.mod` is
+byte-identical after that build, which is the half worth checking:
+
+    git hash-object go.mod
+
+prints the same object id before and after.
 
 A dependency therefore arrives as a commit somebody made and reviewed, or it does
 not arrive. `go.sum` lands in the same commit as the first requirement.
