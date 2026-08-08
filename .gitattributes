@@ -1,0 +1,5 @@
+# The generated manifest and the golden fixture it is compared against are
+# judged byte for byte, so their line endings cannot depend on the checkout
+# setting of whoever ran the test. Pinned here rather than left to core.autocrlf.
+# #23 is where this widens to the rest of the tree.
+*.json text eol=lf
