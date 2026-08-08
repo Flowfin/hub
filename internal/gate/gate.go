@@ -80,6 +80,17 @@ func Legs() []Leg {
 			Refuses:            "a Go file gofmt would rewrite",
 			OutputIsTheVerdict: true,
 		},
+		{
+			// gate-tests-reach-nothing, which decisions/headless-and-unelevated.md
+			// names as a leg of this gate. It is its own leg rather than a test
+			// inside the test leg because the decision asks for a name a reader
+			// sees, and because a red here means something different from a red
+			// test: the suite is asking the runner for something the gate has
+			// decided it may not have.
+			Name:    "tests-reach-nothing",
+			Argv:    []string{"go", "test", "./internal/reach", "-run", "TestTheTreeItselfPasses", "-count=1"},
+			Refuses: "a gate test reaching for the network, a display, elevation or a privileged port",
+		},
 	}
 }
 
@@ -238,9 +249,16 @@ func report(out io.Writer, results []Result, stopped string) {
 		}
 	}
 
+	width := 0
+	for _, r := range results {
+		if n := len(r.Leg.Name); n > width {
+			width = n
+		}
+	}
+
 	fmt.Fprintf(out, "\ngate examined %d of %d legs.\n", ran, len(results))
 	for _, r := range results {
-		line := fmt.Sprintf("  %-8s %s", r.Leg.Name, r.Outcome)
+		line := fmt.Sprintf("  %-*s  %s", width, r.Leg.Name, r.Outcome)
 		switch {
 		case r.Outcome == NotReached && stopped != "":
 			line += fmt.Sprintf(", because %s failed first", stopped)

@@ -1,0 +1,11 @@
+# One literal per line that gate-tests-reach-nothing must refuse. They live here
+# rather than in the suite because a test file naming them would be refused by
+# the check it is testing, which is the check working.
+:80
+127.0.0.1:22
+:1023
+sudo
+xdg-open
+sc.exe
+docker
+netsh

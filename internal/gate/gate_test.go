@@ -98,7 +98,7 @@ func TestRunSaysHowManyLegsItExamined(t *testing.T) {
 	if _, err := Run(&stopped, Legs(), nil, refuse("test")); err == nil {
 		t.Fatal("a failing leg did not fail the run")
 	}
-	if !strings.Contains(stopped.String(), "gate examined 2 of 3 legs.") {
+	if !strings.Contains(stopped.String(), fmt.Sprintf("gate examined 2 of %d legs.", len(Legs()))) {
 		t.Fatalf("a run stopped after two legs does not say so:\n%s", stopped.String())
 	}
 	if !strings.Contains(stopped.String(), "because test failed first") {
@@ -109,7 +109,7 @@ func TestRunSaysHowManyLegsItExamined(t *testing.T) {
 	if _, err := Run(&whole, Legs(), nil, pass); err != nil {
 		t.Fatalf("a clean run failed: %v", err)
 	}
-	if !strings.Contains(whole.String(), "gate examined 3 of 3 legs.") {
+	if !strings.Contains(whole.String(), fmt.Sprintf("gate examined %d of %d legs.", len(Legs()), len(Legs()))) {
 		t.Fatalf("a whole run does not say so:\n%s", whole.String())
 	}
 }
@@ -122,10 +122,13 @@ func TestRunNamesTheLegsItWasNotAskedFor(t *testing.T) {
 		t.Fatalf("a clean single-leg run failed: %v", err)
 	}
 	text := out.String()
-	if !strings.Contains(text, "gate examined 1 of 3 legs.") {
+	if !strings.Contains(text, fmt.Sprintf("gate examined 1 of %d legs.", len(Legs()))) {
 		t.Fatalf("a one-leg run does not say how many it left:\n%s", text)
 	}
-	for _, name := range []string{"build", "test"} {
+	for _, name := range Names(Legs()) {
+		if name == "format" {
+			continue
+		}
 		if !reportSays(text, name, "not asked for") {
 			t.Fatalf("leg %s is missing from the report of a run that skipped it:\n%s", name, text)
 		}
@@ -253,9 +256,21 @@ func TestEveryGateJobRunsTheEntryPointAndNothingElse(t *testing.T) {
 			t.Errorf("%s does not carry a step running %q", WorkflowPath, want)
 		}
 	}
-	if n := strings.Count(text, "run: "); n != len(Legs()) {
-		t.Errorf("%s has %d run steps and %d legs; a step that is not the entry point is a second procedure",
-			WorkflowPath, n, len(Legs()))
+	// A step may report on the environment, and one does. What it may not do is
+	// decide anything: every step that runs the toolchain is the entry point.
+	toolchainSteps := 0
+	for _, line := range strings.Split(text, "\n") {
+		if strings.Contains(line, "run: go ") {
+			toolchainSteps++
+			if !strings.Contains(line, "run: go run . gate ") {
+				t.Errorf("%s runs the toolchain outside the entry point: %s",
+					WorkflowPath, strings.TrimSpace(line))
+			}
+		}
+	}
+	if toolchainSteps != len(Legs()) {
+		t.Errorf("%s has %d toolchain steps and %d legs; a leg run twice or a check inlined in a job is a second procedure",
+			WorkflowPath, toolchainSteps, len(Legs()))
 	}
 }
 
