@@ -91,6 +91,15 @@ func Legs() []Leg {
 			Argv:    []string{"go", "test", "./internal/reach", "-run", "TestTheTreeItselfPasses", "-count=1"},
 			Refuses: "a gate test reaching for the network, a display, elevation or a privileged port",
 		},
+		{
+			// no-hardcoded-names, which decisions/names-are-data.md names as a
+			// leg of this gate. Its own leg for the same reason as the one above:
+			// a red here is not a failing test, it is a name that belongs in the
+			// declarations having been written into the tree instead.
+			Name:    "no-hardcoded-names",
+			Argv:    []string{"go", "test", "./internal/names", "-run", "TestTheTreeItselfPasses", "-count=1"},
+			Refuses: "an account or organisation name written into source or into a workflow step",
+		},
 	}
 }
 
