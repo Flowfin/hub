@@ -41,13 +41,22 @@ not arrive. `go.sum` lands in the same commit as the first requirement.
 
 ### What the test command proves today
 
-Nothing. There are no test files, so `go test ./...` prints that and exits zero:
+The manifest's byte format, and nothing beyond it:
 
-    go test ./...
-    ?       flowfin.dev/hub/manifest        [no test files]
+    go test ./... ; echo "exit=$?"
+    ok      flowfin.dev/hub/manifest        0.482s
+    exit=0
 
-A green from it is not evidence about anything in the tree, and reading it as one
-is the failure #19 exists to repair.
+The suite decodes `manifest/testdata/golden-manifest.json`, encodes it again and
+compares the bytes, checks that an ampersand and angle brackets survive encoding
+as themselves, and checks that no plugins are written as an empty array rather
+than as null. Each of those has been watched failing: the escaping test and the
+specimen test both red when one call is deleted from `Encode`, and the specimen
+test reds on one space removed from the fixture.
+
+What a green does not say is that a generated entry is right. The specimen round
+trips, so an edit to a checksum or a URL inside it passes. Refusing a wrong entry
+is #25 and #27, against the release it came from.
 
 The single entry point that runs build, test and format as named legs lands in
 #18. When it does, this section names its command.
