@@ -1,0 +1,11 @@
+# Fixture. The comment may name it, the step may not.
+#
+#   gh api repos/an-account/hub/commits/main/check-runs
+name: Planted
+on:
+  push:
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh api repos/an-account/hub/actions/workflows
