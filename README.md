@@ -7,17 +7,17 @@ Flowfin is not affiliated with the Jellyfin project.
 
 ## Installing the plugins
 
-Add this repository URL in Jellyfin under **Dashboard → Plugins → Repositories**:
+Not yet possible. No manifest is published, so there is nothing to paste into a
+Jellyfin server. `decisions/manifest-address.md` is the rule an address has to
+meet before it may be printed in this tree, and it carries the request showing
+what the intended one answers today.
 
-```
-https://flowfin.dev/manifest.json
-```
-
-That URL is a commitment. It is served from a domain this organisation controls
-rather than from a `github.io` address, so the organisation, the hosting and even
-the name can change later without breaking a single installation. A manifest URL
-that moves breaks every install silently — no error, the plugins simply never
-update again.
+The shape of that address is settled even though the name is not. It will be
+served from a domain this organisation controls rather than from a `github.io`
+address, so the organisation, the hosting and even the name can change later
+without breaking a single installation. A manifest URL that moves breaks every
+install silently: no error, the plugins simply never update again. Which name it
+is, and who registers it, is entry 2 of #1.
 
 ## What is here
 
