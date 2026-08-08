@@ -100,6 +100,15 @@ func Legs() []Leg {
 			Argv:    []string{"go", "test", "./internal/names", "-run", "TestTheTreeItselfPasses", "-count=1"},
 			Refuses: "an account or organisation name written into source or into a workflow step",
 		},
+		{
+			// site-fetches-nothing-outside, which decisions/data-posture.md asks
+			// for. Its own leg because a red here is not a broken page: it is the
+			// site having grown a request to somebody else, which is a disclosure
+			// obligation for every operator rather than a defect in a build.
+			Name:    "site-fetches-nothing-outside",
+			Argv:    []string{"go", "test", "./internal/site", "-run", "TestTheServedPagesFetchNothingFromAnybodyElse", "-count=1"},
+			Refuses: "a served page that would load from another host, or that carries no restrictive content policy",
+		},
 	}
 }
 
