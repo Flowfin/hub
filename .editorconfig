@@ -1,0 +1,44 @@
+# What an editor should do before anybody runs anything. This file is a request
+# and not the rule: internal/format is what refuses a tracked file breaking one
+# of the three properties below, and gofmt is what decides Go.
+#
+# The values are the tree as it already is rather than a preference imposed on
+# it. Anything here that no check reads is a courtesy to an editor and nothing
+# more.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# gofmt indents with tabs and is the authority for Go formatting, so this
+# follows it rather than arguing with it.
+[*.go]
+indent_style = tab
+indent_size = 4
+
+# The workflow files and the site are two-space by convention in their own
+# ecosystems, and the tree already follows both.
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.{html,css,js}]
+indent_size = 2
+
+# The manifest's own indentation is four spaces and it is fixed by
+# decisions/manifest-schema.md rather than by taste, so this agrees with the
+# encoder rather than with a habit.
+[*.json]
+indent_size = 4
+
+# Markdown is prose, so an indent size is meaningless in it. A trailing space is
+# not: two of them are a hard line break, which is a real construct somebody may
+# want, and the check refuses one anyway. Use a backslash or a blank line, and
+# there is one place to argue with that rather than two.
+[*.md]
+indent_size = 4

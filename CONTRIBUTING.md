@@ -15,6 +15,34 @@ ones that arrive with it.
 
 The site under `docs/` still opens in a browser with no build step.
 
+### Formatting
+
+    gofmt -w .
+
+That is the whole format command, and on a tree that is already formatted it
+changes nothing. gofmt decides Go. Everything else is decided by three
+properties `.editorconfig` states and `internal/format` refuses: a final
+newline, no trailing whitespace, and no tab indent outside Go.
+
+    go test ./internal/format -count=1
+
+is what refuses them, and the Formatting leg of the gate runs both. There is no
+formatter for the HTML, the YAML or the prose, because one would be a runtime
+this tree does not carry, and `.editorconfig` is what an editor reads instead.
+
+Line endings do not decide the verdict, and the two halves get there
+differently. `internal/format` normalises before judging, so it answers the same
+on either checkout, and a test holds that property rather than a sentence
+claiming it. gofmt does not normalise: it lists a Go file whose working copy has
+CRLF, on any platform. What keeps that from being a Windows-only red is
+`.gitattributes`, which pins every tracked file to LF in the working copy as
+well as in the object store, so a fresh clone is LF whatever `core.autocrlf`
+says locally.
+
+If gofmt lists a file you have not touched, that is the symptom: the working
+copy predates `.gitattributes`. Deleting the file and checking it out again
+fixes it, and nothing about the file's content was wrong.
+
 ### The dependency set is empty, and empty is not unlocked
 
 There is no `go.sum` in the tree, because nothing is required yet. A build does
@@ -87,9 +115,11 @@ the comment at the top of its own file:
 
     ls .github/workflows
 
-They are supply-chain and hygiene checks. None of them builds or tests anything,
-because there is nothing yet to build or test. That is worth knowing before you
-read a green check as the tree being verified.
+Most of them are supply-chain and hygiene checks that build and test nothing.
+The Formatting leg is the exception: it installs the toolchain and runs part of
+the suite. Nothing else in the gate compiles this repository yet, which is worth
+knowing before you read a green check as the tree being verified. #18 is where
+one entry point runs build, test and format as named legs.
 
 ## Sign your commits
 

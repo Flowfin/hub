@@ -1,5 +1,12 @@
+# What git stores, which is what every check reads and what every reviewer sees.
+#
+# Line endings are pinned here rather than left to core.autocrlf, so a file's
+# stored bytes do not depend on the checkout setting of whoever committed it.
 # The generated manifest and the golden fixture it is compared against are
-# judged byte for byte, so their line endings cannot depend on the checkout
-# setting of whoever ran the test. Pinned here rather than left to core.autocrlf.
-# #23 is where this widens to the rest of the tree.
-*.json text eol=lf
+# judged byte for byte and would be the first casualty, but the reason is not
+# theirs alone: a rule that only holds for one file type holds by luck.
+#
+# A working copy may still have CRLF, and that is fine. internal/format
+# normalises before judging, so the formatting leg gives the same verdict on
+# either checkout.
+* text=auto eol=lf

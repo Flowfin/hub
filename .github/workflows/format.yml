@@ -1,0 +1,61 @@
+# Formatting. Its own leg with its own name, so a red here says "formatting" and
+# not "something in the build", and so it can be required on its own when #48
+# arrives.
+#
+# Two halves, because two things decide formatting here. gofmt decides Go and
+# ships with the toolchain. internal/format decides the properties an editor
+# configuration states for everything else, and it normalises line endings
+# before judging, so this leg gives the same verdict on a CRLF checkout as on an
+# LF one. .editorconfig is the request; this is the refusal.
+#
+# The single entry point that runs build, test and format as named legs is #18.
+# When it lands this leg calls it instead of calling the two commands directly.
+name: Formatting
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: nothing here writes to the repository.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref; the check is cheap and idempotent.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # go.mod is the authority for the version floor, so it is read rather
+          # than restated here where it would drift.
+          go-version-file: go.mod
+
+      - name: Refuse unformatted Go
+        # gofmt -l prints the files it would change and exits 0 either way, so
+        # the exit status is derived from the output rather than trusted.
+        run: |
+          set -euo pipefail
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt would rewrite these files. Run 'gofmt -w .'."
+            echo "$unformatted"
+            exit 1
+          fi
+          echo "gofmt would rewrite nothing."
+
+      - name: Refuse whitespace .editorconfig forbids
+        run: go test ./internal/format -count=1
