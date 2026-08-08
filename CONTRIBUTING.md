@@ -138,8 +138,10 @@ tense. Read the relevant one before arguing with a rule, because most
 disagreements about a rule are disagreements with the decision behind it and
 those are easier to have directly.
 
-Some things are deliberately not settled, including the license this repository
-carries. Those are in #1 and are not decided in a pull request.
+Some things are deliberately not settled. Those are in #1 and are not decided in
+a pull request. The license this repository carries is no longer one of them: it
+is AGPL-3.0, in [LICENSE](LICENSE), and what remains open in entry 1 of #1 is
+whether the published pages and the design system carry different terms.
 
 ## Style
 
