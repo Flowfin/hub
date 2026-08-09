@@ -94,16 +94,45 @@ func TestTheTiersAreNotTheSameThing(t *testing.T) {
 	}
 }
 
-func TestSkipsAnAuthorFromOutsideAndSaysSo(t *testing.T) {
+func TestSkipsABranchInAForkAndSaysWhereItLives(t *testing.T) {
 	// The fixture breaks two blocking rules. A leg that judged it would red a
-	// first-time contributor's pull request against conventions they have had
-	// no reason to read.
+	// fork's pull request against conventions its author has had no reason to
+	// read.
 	found, skip := judge(t, "from_outside.json")
 	if skip == nil {
-		t.Fatalf("an outside author was judged, and was refused under: %v", found)
+		t.Fatalf("a branch in a fork was judged, and was refused under: %v", found)
 	}
-	if !strings.Contains(skip.Why, "FIRST_TIME_CONTRIBUTOR") {
-		t.Fatalf("the skip does not say what the association was: %s", skip.Why)
+	if !strings.Contains(skip.Why, "a-contributor/hub") {
+		t.Fatalf("the skip does not say where the branch lives: %s", skip.Why)
+	}
+}
+
+func TestTheAssociationDecidesNothingInEitherDirection(t *testing.T) {
+	// The defect this replaced. author_association is what GitHub could say
+	// about the author when the event was written, not a fact about access:
+	// one pull request came back CONTRIBUTOR in its event and MEMBER through
+	// the API, and the leg skipped every rule for it. Both fixtures below
+	// carry the association that would have given the wrong answer.
+	if _, skip := judge(t, "clean.json"); skip != nil {
+		t.Fatalf("a branch in this repository was skipped over its association: %s", skip.Why)
+	}
+	if e := event(t, "clean.json"); !e.Inside() {
+		t.Fatal("a head and base naming one repository were not read as inside")
+	}
+	if e := event(t, "from_outside.json"); e.Inside() {
+		t.Fatal("a branch in a fork was read as inside because its association said MEMBER")
+	}
+}
+
+func TestAPayloadNamingNoHeadRepositoryIsSkippedRatherThanJudged(t *testing.T) {
+	// Err towards the skip that announces itself. A payload this reader cannot
+	// place is not a stranger to be refused, and it is not an insider either.
+	_, skip := judge(t, "no_head_repository.json")
+	if skip == nil {
+		t.Fatal("a payload naming no head repository was judged as though it were from here")
+	}
+	if !strings.Contains(skip.Why, "names no repository") {
+		t.Fatalf("the skip does not say what was missing: %s", skip.Why)
 	}
 }
 
@@ -125,7 +154,7 @@ func TestEverySkipIsPrintedAndSaysWhichRulesWereNotApplied(t *testing.T) {
 	// The half that makes a skip readable as a skip. A run that judged nothing
 	// and printed nothing looks exactly like a run that judged everything and
 	// was content, and this leg reaches that state on most of its runs.
-	for _, name := range []string{"from_outside.json", "draft.json", "no_pull_request.json"} {
+	for _, name := range []string{"from_outside.json", "draft.json", "no_pull_request.json", "no_head_repository.json"} {
 		found, skip := judge(t, name)
 		var out strings.Builder
 		Report(&out, found, skip, false)

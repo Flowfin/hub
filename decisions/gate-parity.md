@@ -119,6 +119,14 @@ body is not empty. Two annotate, a change over 400 lines and a title over 72
 characters, because both are judgements about whether a size was the right one
 and a gate that reds on those is a gate people learn to override.
 
+Who counts as inside is the head branch living in this repository rather than
+the author's association. A branch here can only have been pushed by somebody
+who may push here, and that is the question the skip is asking.
+`author_association` looks like the field for it and is not: it carries what
+GitHub could say about the author when the event was written, and #92 has the
+one pull request that came back `CONTRIBUTOR` in its event and `MEMBER` through
+the API, with every rule skipped in between.
+
 It is the only leg whose subject is not the checkout, so it is also the only one
 that judges nothing on a push and on a local run. Every one of those runs prints
 why it judged nothing and lists the rules it did not apply, which is what keeps

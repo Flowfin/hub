@@ -8,6 +8,16 @@
     "author_association": "COLLABORATOR",
     "additions": 700,
     "deletions": 120,
-    "changed_files": 14
+    "changed_files": 14,
+    "head": {
+      "repo": {
+        "full_name": "Flowfin/hub"
+      }
+    },
+    "base": {
+      "repo": {
+        "full_name": "Flowfin/hub"
+      }
+    }
   }
 }

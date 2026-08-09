@@ -74,25 +74,56 @@ const LongTitle = 72
 type Event struct {
 	Action      string `json:"action"`
 	PullRequest *struct {
-		Number            int    `json:"number"`
-		Title             string `json:"title"`
-		Body              string `json:"body"`
-		Draft             bool   `json:"draft"`
-		AuthorAssociation string `json:"author_association"`
-		Additions         int    `json:"additions"`
-		Deletions         int    `json:"deletions"`
-		ChangedFiles      int    `json:"changed_files"`
+		Number       int    `json:"number"`
+		Title        string `json:"title"`
+		Body         string `json:"body"`
+		Draft        bool   `json:"draft"`
+		Additions    int    `json:"additions"`
+		Deletions    int    `json:"deletions"`
+		ChangedFiles int    `json:"changed_files"`
+		Head         Side   `json:"head"`
+		Base         Side   `json:"base"`
 	} `json:"pull_request"`
 }
 
-// Inside lists the author associations GitHub gives somebody who belongs to
-// this repository. An author outside them is skipped rather than judged.
+// Side is one end of a pull request: where the branch lives.
+type Side struct {
+	Repo struct {
+		FullName string `json:"full_name"`
+	} `json:"repo"`
+}
+
+// Inside reports whether the branch under review lives in the repository being
+// merged into.
 //
-// Not because their work matters less. The rules below are this repository's
-// own conventions, an outside contributor has had no reason to read them, and a
-// red check is the worst possible way to introduce somebody to a convention.
-// The skip is printed for the same reason every skip here is printed.
-var Inside = []string{"OWNER", "MEMBER", "COLLABORATOR"}
+// This is the write-access question asked the only way the payload can answer
+// it. A branch in this repository can only have been pushed by somebody who may
+// push here; a branch anywhere else is a fork. `author_association` looks like
+// the field for this and is not: it carries what GitHub could say about the
+// author when the event was written, an organisation membership that is not
+// public does not have to appear in it, and one pull request came back
+// CONTRIBUTOR in its event and MEMBER through the API. #92 is where that was
+// measured.
+//
+// An author outside is skipped rather than judged, and not because their work
+// matters less. These are this repository's own conventions, an outside
+// contributor has had no reason to read them, and a red check is the worst
+// possible way to introduce somebody to one. The skip is printed for the same
+// reason every skip here is printed.
+func (e Event) Inside() bool {
+	pr := e.PullRequest
+	if pr == nil {
+		return false
+	}
+	head, base := pr.Head.Repo.FullName, pr.Base.Repo.FullName
+	// An empty name on either side is not read as a match. A payload this
+	// reader could not place is treated as outside, which errs towards the
+	// skip that announces itself rather than towards judging a stranger.
+	if strings.TrimSpace(head) == "" || strings.TrimSpace(base) == "" {
+		return false
+	}
+	return strings.EqualFold(head, base)
+}
 
 // Finding is one rule refusing.
 type Finding struct {
@@ -185,10 +216,10 @@ func Judge(e Event) ([]Finding, *Skip) {
 	if pr.Draft {
 		return nil, &Skip{Why: fmt.Sprintf("pull request %d is a draft, and a draft is somebody thinking out loud rather than asking for a merge", pr.Number)}
 	}
-	if !inside(pr.AuthorAssociation) {
+	if !e.Inside() {
 		return nil, &Skip{Why: fmt.Sprintf(
-			"pull request %d is from an author outside this repository (%s), and these are this repository's own conventions rather than rules an outside contributor has had a reason to read",
-			pr.Number, association(pr.AuthorAssociation))}
+			"pull request %d is from a branch outside this repository (%s), and these are this repository's own conventions rather than rules somebody working in a fork has had a reason to read",
+			pr.Number, where(pr.Head.Repo.FullName))}
 	}
 
 	var found []Finding
@@ -224,22 +255,13 @@ func Judge(e Event) ([]Finding, *Skip) {
 	return found, nil
 }
 
-func inside(association string) bool {
-	for _, a := range Inside {
-		if strings.EqualFold(association, a) {
-			return true
-		}
+// where renders a missing head repository as words rather than as nothing, so
+// the skip line never reads as though a field had fallen out of this sentence.
+func where(name string) string {
+	if strings.TrimSpace(name) == "" {
+		return "the payload names no repository for the branch"
 	}
-	return false
-}
-
-// association renders an empty association as words rather than as nothing, so
-// the skip line never reads as though a field were missing from this sentence.
-func association(a string) string {
-	if strings.TrimSpace(a) == "" {
-		return "the payload names no association"
-	}
-	return a
+	return name
 }
 
 // Blocked reports whether any finding refuses the merge.

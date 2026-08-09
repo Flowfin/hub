@@ -5,9 +5,19 @@
     "title": "fix typo",
     "body": "",
     "draft": false,
-    "author_association": "FIRST_TIME_CONTRIBUTOR",
+    "author_association": "MEMBER",
     "additions": 1,
     "deletions": 1,
-    "changed_files": 1
+    "changed_files": 1,
+    "head": {
+      "repo": {
+        "full_name": "a-contributor/hub"
+      }
+    },
+    "base": {
+      "repo": {
+        "full_name": "Flowfin/hub"
+      }
+    }
   }
 }

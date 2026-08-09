@@ -8,6 +8,16 @@
     "author_association": "MEMBER",
     "additions": 8,
     "deletions": 8,
-    "changed_files": 3
+    "changed_files": 3,
+    "head": {
+      "repo": {
+        "full_name": "Flowfin/hub"
+      }
+    },
+    "base": {
+      "repo": {
+        "full_name": "Flowfin/hub"
+      }
+    }
   }
 }

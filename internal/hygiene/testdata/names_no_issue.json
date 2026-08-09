@@ -5,9 +5,19 @@
     "title": "Tidy the site a bit",
     "body": "Some small corrections to the published page.\n",
     "draft": false,
-    "author_association": "OWNER",
+    "author_association": "CONTRIBUTOR",
     "additions": 20,
     "deletions": 4,
-    "changed_files": 1
+    "changed_files": 1,
+    "head": {
+      "repo": {
+        "full_name": "Flowfin/hub"
+      }
+    },
+    "base": {
+      "repo": {
+        "full_name": "Flowfin/hub"
+      }
+    }
   }
 }

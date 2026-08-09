@@ -1,19 +1,14 @@
 {
   "action": "opened",
   "pull_request": {
-    "number": 46,
-    "title": "wip",
-    "body": "",
-    "draft": true,
+    "number": 47,
+    "title": "A payload this reader cannot place",
+    "body": "Closes #47.\n",
+    "draft": false,
     "author_association": "OWNER",
-    "additions": 3,
+    "additions": 4,
     "deletions": 0,
     "changed_files": 1,
-    "head": {
-      "repo": {
-        "full_name": "Flowfin/hub"
-      }
-    },
     "base": {
       "repo": {
         "full_name": "Flowfin/hub"
