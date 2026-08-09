@@ -54,8 +54,34 @@ what an address that answers 404 leaves them able to say.
 
 The pair of requests above stays here because this is where the address is
 argued, and recording a 404 is not the same act as printing an install
-instruction. Turning the condition above into a check that refuses the next file
-to print one is #34. This file states the rule and does not enforce it.
+instruction.
+
+`Gate: install-address-is-answered` is what refuses the next file to print one.
+It reads every tracked file, recognises an address on the host `docs/CNAME`
+declares whose last path segment ends in `manifest.json`, and refuses it unless
+that exact address is recorded in `internal/address.Answered` as having been read
+and found to answer. That list is empty, so the leg refuses every printed install
+address today, which is the sentence above with a machine behind it.
+
+Two things sit outside it, each for its own reason. `decisions/` is not read,
+because this directory is where an address is argued and therefore where the
+request showing that it does NOT answer is recorded; the paragraph above is that
+case and three decision files hold one. An address on somebody else's host is not
+read either: this tree quotes the Jellyfin project's own catalogue as the
+measurement two decisions were derived from, and refusing that would be refusing
+evidence for being evidence. Where a third party's address rots, that is a link,
+and `internal/links` holds it under the harness.
+
+Adding an entry to that list is the act this rule turns on, and it costs the
+request, its output written here, and the list changed in the same commit. What
+keeps the entry honest afterwards is the harness check
+`TestEveryRecordedInstallAddressStillAnswers`, which re-reads every recorded
+address and refuses one that has stopped answering, or that answers with
+something a server cannot read as a catalogue. An address that answered once and
+stopped is silent on every server that already has it.
+
+The operator instruction that prints the address is the other half of #34 and
+cannot be written until that list is not empty.
 
 ## What this costs
 

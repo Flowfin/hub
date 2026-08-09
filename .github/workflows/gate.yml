@@ -186,3 +186,18 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go run . gate site-declares-its-language
+
+  install-address-is-answered:
+    name: "Gate: install-address-is-answered"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The leg reads the tracked file list, so the checkout is the subject
+          # rather than only the source. No step pushes.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go run . gate install-address-is-answered
