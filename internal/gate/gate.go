@@ -138,6 +138,17 @@ func Legs() []Leg {
 			Argv:    []string{"go", "test", "./internal/links", "-run", "TestTheServedSitesLinksResolve", "-count=1"},
 			Refuses: "a link in a served page pointing at a file the site does not carry",
 		},
+		{
+			// site-declares-its-language, which decisions/site-language.md asks
+			// for. Its own leg because a red here is neither a broken page nor a
+			// wrong link: it is a page a screen reader will pronounce with the
+			// wrong voice, or a page left behind in the language the site used
+			// to publish in, and neither is visible to anybody reading it on a
+			// screen.
+			Name:    "site-declares-its-language",
+			Argv:    []string{"go", "test", "./internal/lang", "-run", "TestTheServedPagesDeclareTheirLanguage", "-count=1"},
+			Refuses: "a served page that declares no language, or one the site does not publish in",
+		},
 	}
 }
 
