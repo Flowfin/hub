@@ -57,3 +57,10 @@ identifier in the manifest. `decisions/data-posture.md` is the rule and what it
 rules out. A report sent through the route above is held by GitHub under
 GitHub's own terms, which is outside anything this project controls and is worth
 knowing before you write one.
+
+The same is true of every other request, and the provider is named rather than
+left as "the host". These pages and the manifest are served by GitHub Pages, so
+GitHub receives each request for them; whatever it keeps is GitHub's under its
+own terms, and this project neither reads it nor adds a record of its own beside
+it. What a server sending one of those requests discloses, and what it does not,
+is in the readme under `## What a server sends when it uses this catalogue`.

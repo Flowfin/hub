@@ -50,13 +50,27 @@ that identifies which server asked.
 
 The rule is only useful where somebody reads it before making a decision, and the
 place that happens is the documents an operator opens rather than a file under
-`decisions/`. These three carry it:
+`decisions/`. These carry it:
 
     README.md
+    NOTICE.md
     SECURITY.md
-    the operator quickstart, which is #55
+    docs/index.html
 
-Writing them is milestone 8, specifically #49, and it is not done here.
+Under `## What a server sends when it uses this catalogue` in the readme,
+`## What this project holds about the people who use it` in the notice,
+`## What this project holds about you` in the security policy, and the box of
+that name on the published page. Four things have to survive an edit to any of
+them: that a server fetching the file sends nothing about itself or its users,
+that the hosting provider is named rather than implied, that the catalogue makes
+no promise about the plugins it lists, and that sending data anywhere is
+something an operator configures rather than a default.
+
+The operator quickstart, which is #55, is the one place still owed it. It cannot
+be written yet, for a reason of its own rather than a reason to do with this
+rule: the address it would tell an operator to paste does not answer, and
+`install-address-is-answered` refuses a tracked file that prints one before it
+does.
 
 ## What refuses a violation
 

@@ -64,6 +64,48 @@ else it discards a signal their eyes could have read.
 
 No state depends on hue alone, whatever the preset.
 
+## What a server sends when it uses this catalogue
+
+Nothing about the server, the people using it, or what is in their libraries.
+
+Giving a Jellyfin server a plugin repository address means the server fetches a
+file from that address, on a schedule the server decides. The request carries
+what any request carries, the address it came from and whatever the network puts
+on it, and the file that comes back is the same file for every server. There is
+no value in it that differs between operators, so nothing in the exchange says
+which server asked or what it holds. `decisions/data-posture.md` is the rule and
+lists what it rules out, including the identifier per install that is the usual
+shape this goes wrong in.
+
+Somebody sees the requests, and it is worth saying who rather than implying
+nobody does. The site and the file are served by GitHub Pages, from the `docs`
+directory of this repository:
+
+    gh api repos/Flowfin/hub/pages --jq '{cname, source: .source.path, https_enforced}'
+    {"cname":"flowfin.dev","https_enforced":true,"source":"/docs"}
+
+Run 2026-08-09. Serving a file means receiving a request, so GitHub receives
+every one of them, and whatever it keeps is GitHub's under GitHub's own terms.
+This project has no access to those records and adds nothing on top of them: no
+analytics, no counter of its own, no log. An operator who has to answer for
+their deployment can take that as the whole of it, because there is no second
+party here to find out about later.
+
+The plugins listed in the catalogue are separate projects in separate
+repositories. What each one does with data is its own to describe, and listing
+something is not a statement about its behaviour any more than it is about its
+licence. The catalogue entry names the repository; read it before installing
+from it.
+
+Personal data stays on the operator's own host unless the operator sends it
+somewhere on purpose, and nothing in this catalogue can start that. A plugin
+installed from it can, and it looks like something configured rather than
+something that happens: another server's address entered in a setting, an
+invitation issued to somebody outside the household, a synchronisation target
+pointed at a machine that is not yours. If none of that has been set up, nothing
+has left the host. Whether a particular plugin offers any of it is that plugin's
+own documentation.
+
 ## License
 
 The GNU Affero General Public License, version 3 or any later version. The full
