@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"flowfin.dev/hub/internal/gate"
+	"flowfin.dev/hub/internal/harness"
 	"flowfin.dev/hub/internal/releases"
 	"flowfin.dev/hub/internal/sources"
 )
@@ -42,6 +43,8 @@ func run(args []string, out io.Writer) error {
 	switch args[0] {
 	case "gate":
 		return runGate(args[1:], out)
+	case "harness":
+		return runHarness(args[1:], out)
 	case "sources":
 		return runSources(out)
 	default:
@@ -86,11 +89,64 @@ func runGate(asked []string, out io.Writer) error {
 		return err
 	}
 
-	_, err = gate.Run(out, legs, asked, gate.Shell(out, wd))
-	return err
+	_, gateErr := gate.Run(out, legs, asked, gate.Shell(out, wd))
+
+	// The disclosure the gate's verdict is incomplete without. It is printed
+	// whether the gate passed or failed, and after the report rather than
+	// before it, because the reading it exists against is a green gate taken as
+	// a green everything. decisions/headless-and-unelevated.md is where that is
+	// argued.
+	if err := discloseTheHarness(out, wd); err != nil {
+		return err
+	}
+	return gateErr
+}
+
+func discloseTheHarness(out io.Writer, wd string) error {
+	tagged, err := harness.TaggedFiles(wd)
+	if err != nil {
+		return fmt.Errorf("reading the harness tags: %w", err)
+	}
+	harness.Disclosure(out, harness.Requirements(), tagged)
+	return nil
+}
+
+// runHarness reports what the harness holds, or runs one requirement.
+//
+// It is a verb somebody types rather than a leg, and that is the whole point:
+// every requirement needs something a clean runner does not have, so a merge
+// that waited on one would be a merge waiting on somebody else's service, a
+// browser install or a running server.
+func runHarness(args []string, out io.Writer) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	tagged, err := harness.TaggedFiles(wd)
+	if err != nil {
+		return fmt.Errorf("reading the harness tags: %w", err)
+	}
+
+	requirements := harness.Requirements()
+	if len(args) == 0 {
+		harness.Report(out, requirements, tagged)
+		return nil
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("one requirement at a time, and %d were given: %s",
+			len(args), strings.Join(args, ", "))
+	}
+
+	r, ok := harness.Lookup(requirements, args[0])
+	if !ok {
+		return fmt.Errorf("no such requirement: %s (the requirements are %s)",
+			args[0], strings.Join(harness.Names(requirements), ", "))
+	}
+	return harness.Ask(out, wd, r, tagged)
 }
 
 func usage(out io.Writer) {
-	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . sources\n\nthe legs, in order: %s\n",
-		strings.Join(gate.Names(gate.Legs()), ", "))
+	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
+		strings.Join(gate.Names(gate.Legs()), ", "),
+		strings.Join(harness.Names(harness.Requirements()), ", "))
 }
