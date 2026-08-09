@@ -26,9 +26,11 @@ newline, no trailing whitespace, and no tab indent outside Go.
 
     go test ./internal/format -count=1
 
-is what refuses them, and the Formatting leg of the gate runs both. There is no
-formatter for the HTML, the YAML or the prose, because one would be a runtime
-this tree does not carry, and `.editorconfig` is what an editor reads instead.
+is what refuses them. The gate runs the two halves as two legs, `format` and
+`editorconfig`, so a red says which of them it was without anybody opening a
+log. There is no formatter for the HTML, the YAML or the prose, because one
+would be a runtime this tree does not carry, and `.editorconfig` is what an
+editor reads instead.
 
 Line endings do not decide the verdict, and the two halves get there
 differently. `internal/format` normalises before judging, so it answers the same
@@ -95,9 +97,9 @@ Its legs run in order, they stop at the first failure, and the run ends by sayin
 how many of them it examined, so a run that covered two of three cannot be read
 as one that covered three and found nothing.
 
-The legs are build, test and format, which is what `decisions/means.md` settles
-them as. Which legs exist is printed rather than restated here, because a list in
-this file drifts against the one the command runs:
+What each leg is made of comes from `decisions/means.md`. Which legs exist is
+printed rather than restated here, because a list in this file drifts against the
+one the command runs:
 
     go run .
 
@@ -111,10 +113,10 @@ because `build`, `deploy` and `report-build-status` are already taken on `main`
 by the Pages deployment, which has no file in this tree; `internal/gate` holds
 the prefix, and the suite refuses a leg with no job and a job with no leg.
 
-On a clone where the working copy has CRLF line endings, the format leg lists Go
-files you have not touched. The content is not wrong: gofmt does not normalise
-before judging, and only `*.json` is pinned to LF today. #23 is where that pin
-widens to the rest of the tree.
+On a clone made before `.gitattributes` pinned the whole tree to LF, the format
+leg lists Go files you have not touched. The content is not wrong: gofmt does not
+normalise before judging, and the working copy still holds the carriage returns
+the old checkout wrote. The Formatting section above says what fixes it.
 
 ## Where things live
 
@@ -142,11 +144,10 @@ the comment at the top of its own file:
 
     ls .github/workflows
 
-Most of them are supply-chain and hygiene checks that build and test nothing.
-The Formatting leg is the exception: it installs the toolchain and runs part of
-the suite. Nothing else in the gate compiles this repository yet, which is worth
-knowing before you read a green check as the tree being verified. #18 is where
-one entry point runs build, test and format as named legs.
+`gate.yml` is the one that compiles and tests this repository, one job per leg
+of the entry point above. The rest are supply-chain and hygiene checks that build
+and test nothing, which is worth knowing before you read one of their greens as
+the tree being verified.
 
 ## Sign your commits
 
