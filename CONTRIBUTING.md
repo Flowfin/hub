@@ -234,8 +234,11 @@ whether the published pages and the design system carry different terms.
 
 ## Style
 
-English in tracked files, apart from the published pages under `docs/`, whose
-language is an open question in #1.
+English in tracked files, the published pages under `docs/` included. Their
+language was an open question in #1 and is not one any more:
+`decisions/site-language.md` records the answer, and `Gate:
+site-declares-its-language` refuses a served page that declares no language or
+one the site does not publish in.
 
 Commit messages say what changed and what failure it prevents. Where a correction
 is being made, they say what was wrong and how it was found.

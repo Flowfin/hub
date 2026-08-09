@@ -174,6 +174,17 @@ func Legs() []Leg {
 			Refuses: "a package under the coverage floor, or one carrying no test file at all",
 			Judge:   func(stdout string) error { return coverage.Judge(stdout, coverage.Floor) },
 		},
+		{
+			// site-declares-its-language, which decisions/site-language.md asks
+			// for. Its own leg because a red here is neither a broken page nor a
+			// wrong link: it is a page a screen reader will pronounce with the
+			// wrong voice, or a page left behind in the language the site used
+			// to publish in, and neither is visible to anybody reading it on a
+			// screen.
+			Name:    "site-declares-its-language",
+			Argv:    []string{"go", "test", "./internal/lang", "-run", "TestTheServedPagesDeclareTheirLanguage", "-count=1"},
+			Refuses: "a served page that declares no language, or one the site does not publish in",
+		},
 	}
 }
 
