@@ -1,0 +1,31 @@
+{
+  "surface": {
+    "tokens": {}
+  },
+  "focus": {
+    "presets": {
+      "standard": {
+        "dark": {
+          "accent": {
+            "srgb": "#5B9CFF",
+            "alpha": 1
+          },
+          "accent-soft": {
+            "srgb": "#5B9CFF",
+            "alpha": 0.16
+          }
+        },
+        "light": {
+          "accent": {
+            "srgb": "#0A6CE8",
+            "alpha": 1
+          },
+          "accent-soft": {
+            "srgb": "#0A6CE8",
+            "alpha": 0.12
+          }
+        }
+      }
+    }
+  }
+}

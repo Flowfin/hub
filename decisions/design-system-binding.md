@@ -131,7 +131,21 @@ than one that reports a miss.
 
 ## What refuses a violation
 
-Nothing today. Every sentence above is prose.
+One thing, and it is not one of the sentences above.
+`focus-stands-off-every-surface`, a named leg of the gate, in
+`internal/contrast`. It reads the token file and refuses a focus colour that
+does not clear a contrast floor against a surface it can be drawn on, in every
+brightness scheme and colour-vision preset. Ten palettes, and the one that goes
+unreadable is by construction the one belonging to the eye least able to
+compensate.
+
+The floor it applies is not stated anywhere in this system. It is WCAG 2.2, 3:1
+for a component's own colour and 4.5:1 for text, taken because taking nothing
+would leave the ten palettes decided by whoever last liked a hue. Where this
+system should state its own figure instead is open, and `internal/contrast` is
+where the number lives until it does.
+
+Every other sentence above is prose.
 
 The parts that can become mechanisms are named: #39 extracts the values, #40 checks
 the published page against them, #41 writes the method that makes a measurement
