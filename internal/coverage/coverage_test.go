@@ -82,3 +82,30 @@ func TestTheFloorIsBelowWhatTheTreeHolds(t *testing.T) {
 		t.Fatalf("the floor is %.1f%%, which is at or above the lowest package measured when it was set; raising it is a decision to record in decisions/gate-parity.md rather than a number to nudge", Floor)
 	}
 }
+
+func TestRefusesAPackageNobodyTestedInTheShapeTheFlagPrints(t *testing.T) {
+	// The shape that matters, and the one a reader expecting `ok` and `?` skips
+	// entirely. Asking for coverage changes how a package with no test file is
+	// printed: no status word, an indented path, and a zero percentage. A
+	// reader that missed it would let exactly the package this leg exists for
+	// through, and the run would be green.
+	err := Judge(fixture(t, "a-package-nobody-tested-under-cover.txt"), Floor)
+	if err == nil {
+		t.Fatal("a package printed with no status word and 0.0% was not refused")
+	}
+	if !strings.Contains(err.Error(), "internal/newthing") {
+		t.Fatalf("the refusal does not name the package: %v", err)
+	}
+	if !strings.Contains(err.Error(), "no test file") {
+		t.Fatalf("the refusal does not say what is missing: %v", err)
+	}
+
+	// The two packages that are fine are read and are not named in the refusal,
+	// so the count in it is a count of something.
+	if got := len(Read(fixture(t, "a-package-nobody-tested-under-cover.txt"))); got != 3 {
+		t.Fatalf("read %d package(s), want 3", got)
+	}
+	if strings.Contains(err.Error(), "internal/reader") {
+		t.Fatalf("a package above the floor was named in the refusal: %v", err)
+	}
+}

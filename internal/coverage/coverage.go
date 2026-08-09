@@ -44,22 +44,35 @@ type Package struct {
 	// Path is the import path the summary named.
 	Path string
 
-	// Percent is the statements it executed. A package with no test file is
-	// zero here, and Tested says which of the two it was.
+	// Percent is the statements it executed.
 	Percent float64
 
-	// Tested is false for a package the toolchain reported as having no test
-	// files, which prints no percentage at all.
+	// Tested is false for a package with no test file. Both shapes the
+	// toolchain prints for one land here, the bracketed note and the zero
+	// percentage, so a reader of this field never has to know which was
+	// printed.
 	Tested bool
 }
 
 // Read parses the summary `go test -cover` writes.
 //
-// Three line shapes carry a verdict and each is read. A tested package prints
-// `ok`, its path, a duration and a coverage clause. A package with no test file
-// prints `?` and a bracketed note instead. A failing package prints FAIL, and it
-// is not this check's to report: the test leg already refused it, and a second
-// leg saying so would send a reader to the wrong place.
+// Three line shapes carry a verdict and each is read, because the toolchain
+// prints a package with no test file differently depending on whether coverage
+// was asked for. With the flag it prints the path, indented, with a zero
+// percentage and no status word at all:
+//
+//	go test ./... -cover -count=1
+//	    flowfin.dev/hub/internal/newthing		coverage: 0.0% of statements
+//
+// Measured 2026-08-09 against a planted package. Without the flag the same
+// package prints `?` and a bracketed note. A reader that expected only `ok` and
+// `?` would skip the first shape entirely, which is the package this check most
+// exists to refuse passing unseen, so the status word is read as optional rather
+// than as the anchor.
+//
+// A failing package is not read at all. It prints FAIL and no coverage clause,
+// and the test leg has already refused it; a second leg naming the same package
+// sends a reader to the wrong file.
 func Read(stdout string) []Package {
 	var out []Package
 	for _, line := range strings.Split(strings.ReplaceAll(stdout, "\r\n", "\n"), "\n") {
@@ -67,24 +80,37 @@ func Read(stdout string) []Package {
 		if len(fields) < 2 {
 			continue
 		}
-		switch fields[0] {
-		case "?":
-			out = append(out, Package{Path: fields[1]})
-		case "ok":
-			percent, found := percentIn(line)
-			if !found {
-				// `ok` with no coverage clause is a run that was not asked for
-				// coverage. Reporting it as zero would refuse a package for the
-				// caller's mistake, so it is left out and Judge refuses the
-				// empty result instead.
-				continue
-			}
-			out = append(out, Package{Path: fields[1], Percent: percent, Tested: true})
+
+		status, rest := "", fields
+		if fields[0] == "ok" || fields[0] == "?" {
+			status, rest = fields[0], fields[1:]
 		}
+		if len(rest) == 0 {
+			continue
+		}
+		path := rest[0]
+
+		if strings.Contains(line, noTestFiles) {
+			out = append(out, Package{Path: path})
+			continue
+		}
+		percent, found := percentIn(line)
+		if !found {
+			// A line with no coverage clause is a run that was not asked for
+			// coverage, or a line this reader has no verdict in. Reporting it
+			// as zero would refuse a package for the caller's mistake, so it is
+			// left out and Judge refuses the empty result instead.
+			continue
+		}
+		out = append(out, Package{Path: path, Percent: percent, Tested: status == "ok"})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
 	return out
 }
+
+// noTestFiles is what the toolchain prints instead of a percentage when
+// coverage was not asked for and the package has no test.
+const noTestFiles = "[no test files]"
 
 // clause is what the toolchain prints in front of the number.
 const clause = "coverage: "
@@ -122,7 +148,7 @@ func Judge(stdout string, floor float64) error {
 	var below []string
 	for _, p := range packages {
 		if !p.Tested {
-			below = append(below, fmt.Sprintf("%s carries no test file", p.Path))
+			below = append(below, fmt.Sprintf("%s carries no test file, and ran %.1f%% of its statements", p.Path, p.Percent))
 			continue
 		}
 		if p.Percent < floor {

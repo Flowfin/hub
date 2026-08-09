@@ -1,0 +1,3 @@
+ok  	flowfin.dev/hub	1.472s	coverage: 48.1% of statements
+	flowfin.dev/hub/internal/newthing		coverage: 0.0% of statements
+ok  	flowfin.dev/hub/internal/reader	1.087s	coverage: 97.7% of statements
