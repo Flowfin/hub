@@ -1,0 +1,268 @@
+{
+  "what": "Every value the flowfin design system states, as data. This file is the authority for those values: docs/design-system.html renders them and is checked against this file, and a client on another platform reads this rather than copying numbers out of a stylesheet.",
+  "not-here": "The rules a reviewer applies are prose and stay on the published page. Colour marks focus and nothing else, no state depends on hue alone, no bundled typeface, missing artwork is a design case, nothing waits visibly, no decoration that costs frame rate. None of them is a value and a machine cannot decide any of them, so weakening one into something this file could carry would be the wrong repair. decisions/design-system-binding.md is where that split is argued.",
+  "how-to-read-this": {
+    "colour": "An sRGB hex string and an alpha between 0 and 1. Alpha 1 is opaque. Nothing here is written in CSS syntax: rgba(255,255,255,.07) on the published page is srgb #FFFFFF with alpha 0.07, and a platform that spells a colour some other way composes it from the same two fields.",
+    "length": "A number of density-independent pixels. On the web that is one CSS pixel; on a native client it is whatever that platform calls the unit that scales with the display's density. The unit is stated once here rather than left to be read off a stylesheet, because the published page writes px where the prose writes dp and those are the same number only on the web.",
+    "duration": "Milliseconds, stated as a number.",
+    "css-var": "The custom property the published page carries the value in, so a reader of either can find the other. The token's own name is its role; the custom property is an abbreviation and is not.",
+    "scheme": "Every colour that changes with brightness carries both schemes, dark and light. There is no default: a client picks one, and the published page follows the system preference unless a reader overrides it."
+  },
+  "surface": {
+    "what": "The neutral shell. Content is the only colour, so nothing here is a hue anybody is meant to notice.",
+    "tokens": {
+      "ground": {
+        "role": "The page behind everything. Nothing sits under it.",
+        "css-var": "--ground",
+        "dark": { "srgb": "#121216", "alpha": 1 },
+        "light": { "srgb": "#FAFAFA", "alpha": 1 }
+      },
+      "raise": {
+        "role": "A surface lifted off the ground: a card, a tile's frame, a panel.",
+        "css-var": "--raise",
+        "dark": { "srgb": "#1C1C22", "alpha": 1 },
+        "light": { "srgb": "#FFFFFF", "alpha": 1 }
+      },
+      "raise-2": {
+        "role": "A surface lifted off raise. The second step, and the last one: a third would stop being a step anybody sees.",
+        "css-var": "--raise2",
+        "dark": { "srgb": "#26262E", "alpha": 1 },
+        "light": { "srgb": "#F0F0F2", "alpha": 1 }
+      },
+      "line": {
+        "role": "The hairline that separates where brightness alone does not. In the dark scheme it is white at low alpha over whatever is beneath it, which is why the two schemes differ in alpha and not only in hue.",
+        "css-var": "--line",
+        "dark": { "srgb": "#FFFFFF", "alpha": 0.07 },
+        "light": { "srgb": "#E2E2E6", "alpha": 1 }
+      },
+      "ink": {
+        "role": "Primary text, and anything that has to be read first.",
+        "css-var": "--ink",
+        "dark": { "srgb": "#ECECEF", "alpha": 1 },
+        "light": { "srgb": "#0E0E11", "alpha": 1 }
+      },
+      "ink-2": {
+        "role": "Secondary text: a lede, a description, a caption that is read after the thing it captions.",
+        "css-var": "--ink2",
+        "dark": { "srgb": "#9C9CA6", "alpha": 1 },
+        "light": { "srgb": "#63636B", "alpha": 1 }
+      },
+      "ink-3": {
+        "role": "Tertiary text: labels, units, the year beside a title.",
+        "css-var": "--ink3",
+        "dark": { "srgb": "#6E6E79", "alpha": 1 },
+        "light": { "srgb": "#8E8E96", "alpha": 1 }
+      }
+    }
+  },
+  "lift": {
+    "what": "The shadow a raised surface casts. It is a value rather than a rule, and it is the only shadow the system has.",
+    "css-var": "--lift",
+    "dark": {
+      "offset-x": 0,
+      "offset-y": 10,
+      "blur": 34,
+      "spread": -16,
+      "colour": { "srgb": "#000000", "alpha": 0.8 }
+    },
+    "light": {
+      "offset-x": 0,
+      "offset-y": 8,
+      "blur": 24,
+      "spread": -14,
+      "colour": { "srgb": "#000000", "alpha": 0.16 }
+    }
+  },
+  "focus": {
+    "what": "The one place in the interface with colour in it. Every value below marks what has focus and nothing else.",
+    "combinations": "A brightness scheme and a colour-vision preset combine, and the combination is what an eye actually sees, so the accent is stated per preset per scheme rather than as two lists a reader multiplies. Five presets times two schemes is ten accents.",
+    "note": "The table on the published page prints one colour per preset, and it is the dark one. A client reading that table alone gets the light scheme wrong for every preset. That disagreement is why this file exists and why it is the authority rather than the page.",
+    "ring-width-applies-to": "Both schemes. A preset raises the ring for every brightness or for neither.",
+    "presets": {
+      "standard": {
+        "missing": "nothing",
+        "why-this-hue": "Blue, because with no preset chosen it still carries under the most common deficiencies.",
+        "ring-width": 3,
+        "dark": {
+          "accent": { "srgb": "#5B9CFF", "alpha": 1 },
+          "accent-soft": { "srgb": "#5B9CFF", "alpha": 0.16 }
+        },
+        "light": {
+          "accent": { "srgb": "#0A6CE8", "alpha": 1 },
+          "accent-soft": { "srgb": "#0A6CE8", "alpha": 0.12 }
+        }
+      },
+      "protan": {
+        "missing": "L cones, red",
+        "why-this-hue": "Red looks dark and dull to this eye. A blue with cyan in it has the highest luminance for it.",
+        "ring-width": 3,
+        "dark": {
+          "accent": { "srgb": "#46B8E8", "alpha": 1 },
+          "accent-soft": { "srgb": "#46B8E8", "alpha": 0.16 }
+        },
+        "light": {
+          "accent": { "srgb": "#0E7FA8", "alpha": 1 },
+          "accent-soft": { "srgb": "#0E7FA8", "alpha": 0.13 }
+        }
+      },
+      "deutan": {
+        "missing": "M cones, green",
+        "why-this-hue": "The most common form. Green and red collapse together, blue stays clear, and the violet cast separates it further from grey.",
+        "ring-width": 3,
+        "dark": {
+          "accent": { "srgb": "#8AA0FF", "alpha": 1 },
+          "accent-soft": { "srgb": "#8AA0FF", "alpha": 0.17 }
+        },
+        "light": {
+          "accent": { "srgb": "#3B57C9", "alpha": 1 },
+          "accent-soft": { "srgb": "#3B57C9", "alpha": 0.13 }
+        }
+      },
+      "tritan": {
+        "missing": "S cones, blue",
+        "why-this-hue": "Here blue would be wrong, because it collapses with green. Red is the hue that is left.",
+        "ring-width": 3,
+        "dark": {
+          "accent": { "srgb": "#FF6F7D", "alpha": 1 },
+          "accent-soft": { "srgb": "#FF6F7D", "alpha": 0.16 }
+        },
+        "light": {
+          "accent": { "srgb": "#C6283C", "alpha": 1 },
+          "accent-soft": { "srgb": "#C6283C", "alpha": 0.12 }
+        }
+      },
+      "achroma": {
+        "missing": "all colour",
+        "why-this-hue": "Only here does pure brightness carry, and only here does the ring get thicker.",
+        "ring-width": 4,
+        "dark": {
+          "accent": { "srgb": "#FFFFFF", "alpha": 1 },
+          "accent-soft": { "srgb": "#FFFFFF", "alpha": 0.16 }
+        },
+        "light": {
+          "accent": { "srgb": "#111114", "alpha": 1 },
+          "accent-soft": { "srgb": "#111114", "alpha": 0.12 }
+        }
+      }
+    },
+    "default-ring-width": {
+      "role": "The width of the ring drawn around what has focus, where the preset does not raise it.",
+      "css-var": "--ring",
+      "value": 3
+    }
+  },
+  "type": {
+    "what": "Size and weight per role, at both viewing distances. The two are one scale read from two distances rather than two scales, which is why the roles are the same in both.",
+    "weight": "The CSS numeric weight, 100 to 900. A platform whose font exposes fewer weights rounds to the nearest it has and says so.",
+    "distances": {
+      "television": {
+        "read-from": "3 m",
+        "roles": {
+          "display": { "size": 56, "weight": 700 },
+          "shelf": { "size": 32, "weight": 640 },
+          "tile": { "size": 24, "weight": 540 },
+          "meta": { "size": 20, "weight": 400 }
+        }
+      },
+      "telephone": {
+        "read-from": "35 cm",
+        "roles": {
+          "display": { "size": 28, "weight": 700 },
+          "shelf": { "size": 19, "weight": 640 },
+          "tile": { "size": 14, "weight": 540 },
+          "meta": { "size": 12, "weight": 400 }
+        }
+      }
+    },
+    "role-meanings": {
+      "display": "The one heading a screen is named by.",
+      "shelf": "The heading over a row.",
+      "tile": "The title under an item.",
+      "meta": "Year, runtime, and anything else read after the title."
+    }
+  },
+  "shape": {
+    "radius": {
+      "role": "The corner of a tile, a card, a panel.",
+      "css-var": "--r",
+      "value": 12
+    },
+    "radius-small": {
+      "role": "The corner of something small enough that the larger radius would swallow it: a swatch, a key cap, a chip.",
+      "css-var": "--rs",
+      "value": 8
+    },
+    "content-width": {
+      "role": "The widest a column of text is allowed to get before it stops being readable.",
+      "css-var": "--maxw",
+      "value": 1080
+    }
+  },
+  "font": {
+    "what": "Ordered lists of family names, first available wins. No typeface is bundled, so these are what the platform's own font is called on each platform rather than a choice of typeface.",
+    "sans": {
+      "role": "Everything a person reads as prose.",
+      "css-var": "--f",
+      "stack": [
+        "ui-sans-serif",
+        "-apple-system",
+        "Segoe UI",
+        "Roboto",
+        "system-ui",
+        "sans-serif"
+      ]
+    },
+    "mono": {
+      "role": "Values, identifiers, key caps, and anything where the column has to line up.",
+      "css-var": "--m",
+      "stack": [
+        "ui-monospace",
+        "Cascadia Mono",
+        "Consolas",
+        "SF Mono",
+        "monospace"
+      ]
+    }
+  },
+  "budget": {
+    "what": "Five numbers, each one a release condition rather than a target. A client that misses one does not ship that release, and a client that has not been measured has not met it. decisions/design-system-binding.md is where that consequence is stated and where the rule against waiving a number is.",
+    "method": "What counts as a measurement for each number is not settled yet, and until it is, two clients' figures are not comparable. That is issue 41 on the Flowfin/hub tracker, and this file does not answer it.",
+    "numbers": {
+      "focus-change": {
+        "what": "Key press to the first moved scanline.",
+        "limit": 80,
+        "unit": "ms",
+        "comparison": "below",
+        "why": "Above that the remote feels sluggish."
+      },
+      "dropped-frames": {
+        "what": "Frames dropped scrolling across a row of 200 tiles at 60 fps.",
+        "limit": 0,
+        "unit": "frames",
+        "comparison": "equal",
+        "why": "A single drop is visible."
+      },
+      "first-picture": {
+        "what": "App start to the first usable tile, from a cold start.",
+        "limit": 1200,
+        "unit": "ms",
+        "comparison": "below",
+        "why": "Later than that and the app reads as loading rather than opening."
+      },
+      "layout-shift": {
+        "what": "Elements that move after they are first painted.",
+        "limit": 0,
+        "unit": "shifts",
+        "comparison": "equal",
+        "why": "The tile's size is fixed before the image arrives, so a shift means something was not held."
+      },
+      "playback-start": {
+        "what": "Selection to picture, on direct play over the local network.",
+        "limit": 2000,
+        "unit": "ms",
+        "comparison": "below",
+        "why": "Beyond that the selection stops feeling like it was received."
+      }
+    }
+  }
+}

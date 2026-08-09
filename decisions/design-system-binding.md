@@ -89,7 +89,9 @@ share a layout. Density, arrangement and navigation belong to the platform.
 The values live in one machine-readable file, and it becomes the authority for
 them. The published page then renders from that file or is checked against it, so
 the disagreement found above cannot be reintroduced by editing one of the two. The
-file is #39 and the check that holds the page to it is #40.
+file is `docs/design-tokens.json`, which #39 extracted, and the check that holds
+the page to it is #40. Until that check exists, the two can still disagree; what
+the file changes today is that the disagreement has a side that is right.
 
 The rules stay prose, on the published page, and they are applied by a person
 reviewing a client. They are not moved into the token file in a weakened form that
