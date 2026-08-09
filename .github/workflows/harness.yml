@@ -1,0 +1,80 @@
+# The environment-bound checks, which are not the gate.
+#
+# One job per requirement, named for what the runner has to supply, so a reader
+# of this list can tell which runs would go red because the internet was down
+# without opening a file. internal/harness holds the requirements and the suite
+# refuses a requirement with no job here and a job here with no requirement.
+#
+# Nothing here blocks a merge. decisions/headless-and-unelevated.md says the gate
+# never depends on this file, and the gate's own report says on every run that
+# none of these ran, so a green gate is not read as a green harness.
+name: Harness
+
+on:
+  # Deliberate and nothing else. A schedule is excluded as well as push and
+  # pull_request: a run nobody asked for produces a red nobody is holding, and
+  # the suite refuses any trigger but this one.
+  workflow_dispatch:
+    inputs:
+      requirement:
+        description: "which requirement to ask for"
+        required: true
+        type: choice
+        options:
+          - needs-network
+          - needs-browser
+          - needs-jellyfin
+
+# Read-only: no job here writes to the repository.
+permissions:
+  contents: read
+
+jobs:
+  needs-network:
+    name: needs-network
+    if: inputs.requirement == 'needs-network'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # go.mod is the authority for the version floor, so it is read rather
+          # than restated here where it would drift.
+          go-version-file: go.mod
+      - env:
+          # The read is against the world, so it meets the rate limit without a
+          # token. The token is the run's own, scoped by the permissions above.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: go run . harness needs-network
+
+  needs-browser:
+    name: needs-browser
+    if: inputs.requirement == 'needs-browser'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go run . harness needs-browser
+
+  needs-jellyfin:
+    name: needs-jellyfin
+    if: inputs.requirement == 'needs-jellyfin'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go run . harness needs-jellyfin

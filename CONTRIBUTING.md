@@ -113,6 +113,36 @@ because `build`, `deploy` and `report-build-status` are already taken on `main`
 by the Pages deployment, which has no file in this tree; `internal/gate` holds
 the prefix, and the suite refuses a leg with no job and a job with no leg.
 
+### The harness, which is not the gate
+
+    go run . harness
+
+says what the environment-bound checks are, what each one needs, and what asking
+for it costs, without running any of them. One of them at a time is
+`go run . harness needs-network`.
+
+These are the checks that cannot run on a clean runner: a request off the
+machine, a real browser render, a Jellyfin server to install into.
+`decisions/headless-and-unelevated.md` keeps them out of the merge gate, because
+a gate that reddens when somebody else's service is having an afternoon teaches
+everybody that red means nothing. Each one is named for what it needs rather than
+for what it tests, and that name is the build tag on the test file, the job in
+`.github/workflows/harness.yml`, and the word you type.
+
+Nothing here blocks a merge and nothing here runs on a pull request. The workflow
+declares one trigger, a person asking for it, and the suite refuses any other.
+
+The half that is easy to drop is the other one: every `go run . gate` ends by
+saying that the harness did not run, which requirements exist, and what asking
+would cost. A green gate beside a silent harness reads as everything passing, and
+that reading is wrong in exactly the cases the harness exists for.
+
+Writing one is a test file whose first line is the tag, for instance
+`//go:build needs_network`. That tag is what spares the file from
+`gate-tests-reach-nothing`, and a tag no requirement declares is refused: such a
+file is spared by the gate and run by no job, so it runs nowhere and nothing says
+so.
+
 On a clone made before `.gitattributes` pinned the whole tree to LF, the format
 leg lists Go files you have not touched. The content is not wrong: gofmt does not
 normalise before judging, and the working copy still holds the carriage returns
@@ -147,7 +177,8 @@ the comment at the top of its own file:
 `gate.yml` is the one that compiles and tests this repository, one job per leg
 of the entry point above. The rest are supply-chain and hygiene checks that build
 and test nothing, which is worth knowing before you read one of their greens as
-the tree being verified.
+the tree being verified. `harness.yml` runs only when somebody asks for it, and
+never on a pull request.
 
 ## Sign your commits
 
