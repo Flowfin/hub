@@ -1,0 +1,13 @@
+{
+  "action": "opened",
+  "pull_request": {
+    "number": 41,
+    "title": "Refuse a served page that links to a file the site does not carry",
+    "body": "Closes #36.\n\nThe leg and the fixture it was watched refusing are below.\n",
+    "draft": false,
+    "author_association": "OWNER",
+    "additions": 180,
+    "deletions": 12,
+    "changed_files": 6
+  }
+}

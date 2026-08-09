@@ -53,10 +53,23 @@ was raised: at that point this board required nothing at all.
 
 Both run 2026-08-09. Ten required names against the target's thirteen.
 
-One of this board's own legs is missing from that list. `Gate: editorconfig`
-landed after the ruleset was written and nothing adds a name to a ruleset on its
-own, so the newest leg runs on every pull request and blocks nothing. Widening
-the required set is #48 and is not done here; recording that the gap exists is.
+Some of this board's own legs are missing from that list, and the set grows
+every time one lands, because nothing adds a name to a ruleset on its own. A leg
+in that state runs on every pull request and blocks nothing. How many there are
+today is derived rather than written here, since the number moves whenever
+either side does:
+
+    comm -23 <(grep -o 'Gate: [a-z0-9-]*' .github/workflows/gate.yml | sort -u) \
+             <(gh api repos/Flowfin/hub/rules/branches/main \
+                --jq '.[] | select(.type=="required_status_checks")
+                      | .parameters.required_status_checks[].context' | sort)
+
+The left side is the workflow's job names rather than the leg list, and the two
+cannot disagree: `internal/gate`'s suite refuses a leg with no job and a job
+with no leg.
+
+Widening the required set is #48 and is not done here; recording that the gap
+exists is.
 
 ## The legs, one line each
 
@@ -93,11 +106,24 @@ that a finding blocks rather than annotates.
 **DCO sign-off.** ADOPTED, unchanged, and already required. Same workflow shape,
 same certificate, same refusal of a non-merge commit without the line.
 
-**Deterministic PR-hygiene checks.** ADAPTED, and it is #45. What carries over is
-the tiering, so high-confidence rules block and soft conventions annotate, and
-the explicit skip for an author from outside the repository that announces itself
-rather than going quiet. What is dropped from it is every rule about a solution
-file, a changelog format or a test project, none of which exist here.
+**Deterministic PR-hygiene checks.** ADAPTED, landed as `Gate: pr-hygiene` in
+`internal/hygiene`. What carries over is the tiering, so high-confidence rules
+block and soft conventions annotate, and the explicit skip for an author from
+outside the repository that announces itself rather than going quiet. What is
+dropped from it is every rule about a solution file, a changelog format or a
+test project, none of which exist here.
+
+Two rules block, and each of them is a fact about the request rather than a
+reading of it: that a `#number` appears in the title or the body, and that the
+body is not empty. Two annotate, a change over 400 lines and a title over 72
+characters, because both are judgements about whether a size was the right one
+and a gate that reds on those is a gate people learn to override.
+
+It is the only leg whose subject is not the checkout, so it is also the only one
+that judges nothing on a push and on a local run. Every one of those runs prints
+why it judged nothing and lists the rules it did not apply, which is what keeps
+a skip from being read as a clean verdict. The leg passes `-v` for that reason
+and not by accident.
 
 **Enforce greppable invariants.** ADAPTED, and it has already landed under other
 names. The target runs a pattern linter over its source; this board's equivalent

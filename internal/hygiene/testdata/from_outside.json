@@ -1,0 +1,13 @@
+{
+  "action": "opened",
+  "pull_request": {
+    "number": 45,
+    "title": "fix typo",
+    "body": "",
+    "draft": false,
+    "author_association": "FIRST_TIME_CONTRIBUTOR",
+    "additions": 1,
+    "deletions": 1,
+    "changed_files": 1
+  }
+}
