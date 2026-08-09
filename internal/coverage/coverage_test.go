@@ -89,7 +89,17 @@ func TestRefusesAPackageNobodyTestedInTheShapeTheFlagPrints(t *testing.T) {
 	// printed: no status word, an indented path, and a zero percentage. A
 	// reader that missed it would let exactly the package this leg exists for
 	// through, and the run would be green.
-	err := Judge(fixture(t, "a-package-nobody-tested-under-cover.txt"), Floor)
+	//
+	// It is a literal here rather than a file under testdata because the line
+	// begins with a tab, and the editorconfig leg refuses a tracked file
+	// outside Go indented with one. The escape keeps the bytes exact, which is
+	// the whole point of a fixture; a file holding a space instead would be a
+	// fixture of a line the toolchain never prints.
+	const summary = "ok  \tflowfin.dev/hub\t1.472s\tcoverage: 48.1% of statements\n" +
+		"\tflowfin.dev/hub/internal/newthing\t\tcoverage: 0.0% of statements\n" +
+		"ok  \tflowfin.dev/hub/internal/reader\t1.087s\tcoverage: 97.7% of statements\n"
+
+	err := Judge(summary, Floor)
 	if err == nil {
 		t.Fatal("a package printed with no status word and 0.0% was not refused")
 	}
@@ -102,7 +112,7 @@ func TestRefusesAPackageNobodyTestedInTheShapeTheFlagPrints(t *testing.T) {
 
 	// The two packages that are fine are read and are not named in the refusal,
 	// so the count in it is a count of something.
-	if got := len(Read(fixture(t, "a-package-nobody-tested-under-cover.txt"))); got != 3 {
+	if got := len(Read(summary)); got != 3 {
 		t.Fatalf("read %d package(s), want 3", got)
 	}
 	if strings.Contains(err.Error(), "internal/reader") {
