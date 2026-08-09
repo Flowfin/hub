@@ -1,0 +1,2 @@
+ok  	example.test/tree	1.904s
+ok  	example.test/tree/internal/reader	1.087s
