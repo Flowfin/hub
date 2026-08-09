@@ -185,6 +185,15 @@ func Legs() []Leg {
 			Argv:    []string{"go", "test", "./internal/lang", "-run", "TestTheServedPagesDeclareTheirLanguage", "-count=1"},
 			Refuses: "a served page that declares no language, or one the site does not publish in",
 		},
+		{
+			// install-address-is-answered, which decisions/manifest-address.md
+			// names as owed. Its subject is every tracked file rather than the
+			// served pages, because the address does its damage wherever it is
+			// printed and the file an operator follows first is the README.
+			Name:    "install-address-is-answered",
+			Argv:    []string{"go", "test", "./internal/address", "-run", "TestNoTrackedFilePrintsAnUnansweredInstallAddress", "-count=1"},
+			Refuses: "an install address printed in a tracked file before anybody has read it",
+		},
 	}
 }
 
