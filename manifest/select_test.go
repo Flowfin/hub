@@ -143,6 +143,24 @@ func TestTheCapKeepsTheNewestOfEachLineWhicheverOrderTheyArrivedIn(t *testing.T)
 	}
 }
 
+func TestPluginsOrderByGuidAndNotByName(t *testing.T) {
+	// The specimen cannot carry this one. Its two plugins are in the same order
+	// under either rule, so a pass ordering by name rebuilds it byte for byte
+	// and the golden comparison stays green. Measured rather than supposed: the
+	// name mutation was planted and that test passed. So the two rules are made
+	// to disagree here, which is what a rename does in practice.
+	plugins := []Plugin{
+		{GUID: "bbbb0000-0000-4000-8000-000000000000", Name: "Aardvark"},
+		{GUID: "aaaa0000-0000-4000-8000-000000000000", Name: "Zebra"},
+	}
+	OrderPlugins(plugins)
+
+	if plugins[0].GUID != "aaaa0000-0000-4000-8000-000000000000" {
+		t.Fatalf("ordered by %s first; ordering by name puts Aardvark first and moves an entry every time somebody renames a plugin",
+			plugins[0].Name)
+	}
+}
+
 // TestSelectBuildsTheGoldenFixtureFromAnUnorderedOvercappedInput is the byte
 // half of the issue's done-condition. The input is the specimen's own content
 // with the plugins reversed, every versions array reversed, and three entries
