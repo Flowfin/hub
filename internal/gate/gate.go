@@ -9,8 +9,9 @@
 // the jobs the workflow declares, and the suite refuses a leg with no job and a
 // job with no leg.
 //
-// What each leg is made of comes from decisions/means.md: Go, go test, and
-// gofmt -l over the tree.
+// What each leg is made of comes from decisions/means.md, which is why every
+// Argv below is the toolchain and nothing installed beside it. Legs is the
+// authority for the list; a run prints it, and no comment here repeats it.
 package gate
 
 import (
@@ -79,6 +80,18 @@ func Legs() []Leg {
 			Argv:               []string{"gofmt", "-l", "."},
 			Refuses:            "a Go file gofmt would rewrite",
 			OutputIsTheVerdict: true,
+		},
+		{
+			// editorconfig, the half of formatting gofmt does not reach: the
+			// HTML, the JSON, the workflow YAML and the prose, which are most
+			// of the tree. Its own leg rather than a widening of format
+			// because the two are decided by different things and fail for
+			// different reasons - one is the toolchain's formatter, the other
+			// is three properties .editorconfig states - and because a leg
+			// runs one command.
+			Name:    "editorconfig",
+			Argv:    []string{"go", "test", "./internal/format", "-run", "TestTrackedTreeIsFormatted", "-count=1"},
+			Refuses: "a tracked file with no final newline, with trailing whitespace, or indented with a tab outside Go",
 		},
 		{
 			// gate-tests-reach-nothing, which decisions/headless-and-unelevated.md
