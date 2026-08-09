@@ -1,0 +1,18 @@
+{
+  "surface": {
+    "tokens": {
+      "ground": { "dark": { "srgb": "#121216", "alpha": 1 }, "light": { "srgb": "#FAFAFA", "alpha": 1 } },
+      "raise": { "dark": { "srgb": "#1C1C22", "alpha": 1 }, "light": { "srgb": "#FFFFFF", "alpha": 1 } },
+      "raise-2": { "dark": { "srgb": "#26262E", "alpha": 1 }, "light": { "srgb": "#F0F0F2", "alpha": 1 } },
+      "ink": { "dark": { "srgb": "#ECECEF", "alpha": 1 }, "light": { "srgb": "#0E0E11", "alpha": 1 } }
+    }
+  },
+  "focus": {
+    "presets": {
+      "standard": {
+        "dark": { "accent": { "srgb": "#6B6B6B", "alpha": 1 }, "accent-soft": { "srgb": "#5B9CFF", "alpha": 0.16 } },
+        "light": { "accent": { "srgb": "#0A6CE8", "alpha": 1 }, "accent-soft": { "srgb": "#0A6CE8", "alpha": 0.12 } }
+      }
+    }
+  }
+}
