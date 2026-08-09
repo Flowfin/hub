@@ -122,6 +122,22 @@ func Legs() []Leg {
 			Argv:    []string{"go", "test", "./internal/site", "-run", "TestTheServedPagesFetchNothingFromAnybodyElse", "-count=1"},
 			Refuses: "a served page that would load from another host, or that carries no restrictive content policy",
 		},
+		{
+			// site-links-resolve, the half of #36 that needs nothing running.
+			// Its own leg rather than a widening of the one above because the
+			// two ask different questions of the same attribute: that one
+			// refuses a page for fetching from somebody else, this one refuses
+			// a page for pointing at a file the site does not carry, and an
+			// anchor is invisible to the first and is the second's main case.
+			//
+			// Its subject is the served directory and stops there. The links in
+			// the Markdown at the repository root rot the same way and are not
+			// the site; internal/links says so where the scope is set, so a
+			// green here is not read as covering them.
+			Name:    "site-links-resolve",
+			Argv:    []string{"go", "test", "./internal/links", "-run", "TestTheServedSitesLinksResolve", "-count=1"},
+			Refuses: "a link in a served page pointing at a file the site does not carry",
+		},
 	}
 }
 
