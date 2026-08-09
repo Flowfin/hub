@@ -42,7 +42,7 @@ Two things are settled there and worth repeating here, because they are the part
 that get quietly dropped first:
 
 **Nothing waits visibly.** No spinner inside a tile, no layout shift when an image
-arrives, no reflow. The speed budget is written as numbers that a build can miss —
+arrives, no reflow. The speed budget is written as numbers that a build can miss -
 focus change under 80 ms, no dropped frames at 60 fps across 200 tiles, first
 usable tile under 1.2 s from a cold start.
 
@@ -57,7 +57,7 @@ The interface is neutral. Content is the only colour, and one accent marks one
 thing: what has focus.
 
 That accent is configurable, with presets per deficiency rather than a single
-"accessible" mode — because which hue works depends on which cone type is missing,
+"accessible" mode - because which hue works depends on which cone type is missing,
 and the hue that serves the two common forms best is the wrong one for the rare
 third. Removing colour entirely is correct only for achromatopsia; for everyone
 else it discards a signal their eyes could have read.
