@@ -345,3 +345,53 @@ permissions:
 		t.Fatalf("JobsIn read %v; a key outside jobs: is not a job", jobs)
 	}
 }
+
+func TestVerdictReadsTheMeasurementALegPrinted(t *testing.T) {
+	// A leg whose command exits zero and whose finding is in the numbers. The
+	// judgement is what decides it, so a runner that only read the status would
+	// report the refusal as a pass.
+	leg := Leg{
+		Name: "measured",
+		Argv: []string{"go", "test", "./...", "-cover"},
+		Judge: func(stdout string) error {
+			if !strings.Contains(stdout, "100.0%") {
+				return fmt.Errorf("something was under the floor")
+			}
+			return nil
+		},
+	}
+	if err := Verdict(leg, "ok  example/x  0.1s  coverage: 12.0% of statements\n", nil); err == nil {
+		t.Fatal("a leg exiting zero with a low measurement passed")
+	}
+	if err := Verdict(leg, "ok  example/x  0.1s  coverage: 100.0% of statements\n", nil); err != nil {
+		t.Fatalf("a leg exiting zero with a good measurement was refused: %v", err)
+	}
+}
+
+func TestBothKindsOfOutputJudgementAreKeptByTheRunner(t *testing.T) {
+	// The trap this one exists for is silent in both directions. A judged leg
+	// whose output the runner threw away judges an empty string, which for a
+	// measurement means nothing was measured and for gofmt means nothing was
+	// listed, and only one of those two is a red.
+	listed := Leg{Name: "listing", OutputIsTheVerdict: true}
+	measured := Leg{Name: "measuring", Judge: func(string) error { return nil }}
+	plain := Leg{Name: "plain"}
+
+	if !listed.ReadsItsOwnOutput() || !measured.ReadsItsOwnOutput() {
+		t.Fatalf("a leg decided by its output does not ask for it: listing=%v measuring=%v",
+			listed.ReadsItsOwnOutput(), measured.ReadsItsOwnOutput())
+	}
+	if plain.ReadsItsOwnOutput() {
+		t.Fatal("a leg decided by its exit status asked for its output to be kept")
+	}
+}
+
+func TestEveryJudgedLegIsAskedForItsOutput(t *testing.T) {
+	// Against the real list rather than against a fixture, because the mistake
+	// is made when a leg is added and not when the runner is written.
+	for _, l := range Legs() {
+		if l.Judge != nil && !l.ReadsItsOwnOutput() {
+			t.Errorf("the %s leg is judged by its output and the runner would not keep it", l.Name)
+		}
+	}
+}
