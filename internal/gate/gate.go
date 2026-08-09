@@ -20,6 +20,8 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
+
+	"flowfin.dev/hub/internal/coverage"
 )
 
 // Leg is one thing the gate checks.
@@ -40,6 +42,15 @@ type Leg struct {
 	// OutputIsTheVerdict marks a leg whose exit status does not carry its
 	// finding. Verdict is where that is acted on and where the reason is.
 	OutputIsTheVerdict bool
+
+	// Judge, when set, decides the leg from what it printed rather than from
+	// the fact that it printed anything. OutputIsTheVerdict covers the one
+	// shape where any output at all is the refusal; a leg whose output is a
+	// measurement needs the measurement read, and this is where that reading
+	// is supplied. It is a function while Argv is data on purpose: the report
+	// prints what a leg would run without running it, and a judgement has
+	// nothing to print.
+	Judge func(stdout string) error
 }
 
 // JobNamePrefix is what a leg's name carries in front of it to become the name
@@ -57,6 +68,16 @@ const JobNamePrefix = "Gate: "
 
 // CheckRunName is the name the leg's job reports under.
 func (l Leg) CheckRunName() string { return JobNamePrefix + l.Name }
+
+// ReadsItsOwnOutput reports whether the runner has to keep what the leg printed
+// rather than passing it straight through.
+//
+// Both ways a leg can be decided by its output need the same thing from the
+// runner, and forgetting one of them is silent: the judgement then reads an
+// empty string, which for the coverage leg means it judged no package and for
+// gofmt would mean it listed no file. Naming the question once is what keeps the
+// two answers from drifting apart.
+func (l Leg) ReadsItsOwnOutput() bool { return l.OutputIsTheVerdict || l.Judge != nil }
 
 // Legs is the gate, in the order it runs.
 //
@@ -139,6 +160,21 @@ func Legs() []Leg {
 			Refuses: "a link in a served page pointing at a file the site does not carry",
 		},
 		{
+			// coverage, adopted in decisions/gate-parity.md. It runs the suite
+			// a second time rather than sharing the test leg's run, because a
+			// leg is one command and a leg that depended on another leg's
+			// output would stop being runnable on its own.
+			//
+			// Its exit status says the suite passed and says nothing about the
+			// numbers, which is why it carries a Judge: `go test -cover` prints
+			// a percentage per package and exits zero over a package that ran
+			// none of its statements.
+			Name:    "coverage",
+			Argv:    []string{"go", "test", "./...", "-cover", "-count=1"},
+			Refuses: "a package under the coverage floor, or one carrying no test file at all",
+			Judge:   func(stdout string) error { return coverage.Judge(stdout, coverage.Floor) },
+		},
+		{
 			// site-declares-its-language, which decisions/site-language.md asks
 			// for. Its own leg because a red here is neither a broken page nor a
 			// wrong link: it is a page a screen reader will pronounce with the
@@ -183,6 +219,12 @@ func Lookup(legs []Leg, name string) (Leg, bool) {
 func Verdict(l Leg, stdout string, exitErr error) error {
 	if exitErr != nil {
 		return fmt.Errorf("%s: %w", strings.Join(l.Argv, " "), exitErr)
+	}
+	if l.Judge != nil {
+		if err := l.Judge(stdout); err != nil {
+			return fmt.Errorf("%s: %w", strings.Join(l.Argv, " "), err)
+		}
+		return nil
 	}
 	if !l.OutputIsTheVerdict {
 		return nil
@@ -338,7 +380,7 @@ func Shell(out io.Writer, dir string) Executor {
 		cmd.Dir = dir
 		cmd.Stderr = out
 
-		if !l.OutputIsTheVerdict {
+		if !l.ReadsItsOwnOutput() {
 			cmd.Stdout = out
 			return Verdict(l, "", cmd.Run())
 		}
