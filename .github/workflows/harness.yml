@@ -49,6 +49,12 @@ jobs:
           # The read is against the world, so it meets the rate limit without a
           # token. The token is the run's own, scoped by the permissions above.
           GITHUB_TOKEN: ${{ github.token }}
+          # Where the manifest is published. It is a repository variable rather
+          # than a literal here because decisions/manifest-address.md allows an
+          # install address into a tracked file only once the address answers
+          # with the file it promises, and today it answers 404. Unset is a
+          # refusal in the check rather than a skip.
+          MANIFEST_ADDRESS: ${{ vars.MANIFEST_ADDRESS }}
         run: go run . harness needs-network
 
   needs-browser:
