@@ -1,0 +1,13 @@
+{
+  "action": "synchronize",
+  "pull_request": {
+    "number": 44,
+    "title": "Adopt the code scanning legs that have something to look at here, with the workflow, the configuration and the first run",
+    "body": "Closes #44.\n\nThe scanner, its configuration, and the run that produced the first finding.\n",
+    "draft": false,
+    "author_association": "COLLABORATOR",
+    "additions": 700,
+    "deletions": 120,
+    "changed_files": 14
+  }
+}

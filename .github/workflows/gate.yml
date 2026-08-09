@@ -214,3 +214,19 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go run . gate focus-stands-off-every-surface
+
+  pr-hygiene:
+    name: "Gate: pr-hygiene"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      # The leg reads the event payload the runner writes and nothing else. It
+      # is the only leg whose subject is not in the checkout, which is why the
+      # push run of this job judges nothing and prints that it judged nothing.
+      - run: go run . gate pr-hygiene

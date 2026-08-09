@@ -1,0 +1,13 @@
+{
+  "action": "opened",
+  "pull_request": {
+    "number": 46,
+    "title": "wip",
+    "body": "",
+    "draft": true,
+    "author_association": "OWNER",
+    "additions": 3,
+    "deletions": 0,
+    "changed_files": 1
+  }
+}

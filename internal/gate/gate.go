@@ -206,6 +206,21 @@ func Legs() []Leg {
 			Argv:    []string{"go", "test", "./internal/contrast", "-run", "TestTheDesignSystemsFocusColourStandsOffEverySurface", "-count=1"},
 			Refuses: "a focus colour that does not stand off a surface it is drawn on, in any brightness scheme and colour-vision preset",
 		},
+		{
+			// pr-hygiene, adapted from the plugin board's leg of that name in
+			// decisions/gate-parity.md. The only leg here whose subject is the
+			// request rather than the tree, which is also why it is the only
+			// one that judges nothing on a push and on a local run.
+			//
+			// It passes -v, and that is not a leftover. The leg's output is
+			// half of what it delivers: a skip that says why it skipped, and
+			// an advisory finding that annotates without moving the verdict.
+			// go test discards a passing test's log without it, and this leg
+			// passes on almost every run it makes.
+			Name:    "pr-hygiene",
+			Argv:    []string{"go", "test", "./internal/hygiene", "-run", "TestThisPullRequestIsHygienic", "-count=1", "-v"},
+			Refuses: "a pull request that names no issue, or one whose body says nothing",
+		},
 	}
 }
 

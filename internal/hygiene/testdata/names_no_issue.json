@@ -1,0 +1,13 @@
+{
+  "action": "opened",
+  "pull_request": {
+    "number": 42,
+    "title": "Tidy the site a bit",
+    "body": "Some small corrections to the published page.\n",
+    "draft": false,
+    "author_association": "OWNER",
+    "additions": 20,
+    "deletions": 4,
+    "changed_files": 1
+  }
+}
