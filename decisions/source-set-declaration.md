@@ -63,7 +63,8 @@ download URL, not the checksum, not the timestamp, not the plugin's identity. Th
 whole argument of `decisions/manifest-is-generated.md` is that a copy of a value
 that lives in the release is wrong from the moment the release moves, and a
 declaration file is not exempt from it. Where the plugin's identity comes from
-instead is `decisions/manifest-schema.md` and #26.
+instead is `decisions/manifest-schema.md` for what each field is and
+`decisions/plugin-identity.md` for which bytes it is read out of.
 
 ## Where the declarations live
 
