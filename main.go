@@ -25,6 +25,7 @@ import (
 	"flowfin.dev/hub/internal/harness"
 	"flowfin.dev/hub/internal/releases"
 	"flowfin.dev/hub/internal/sources"
+	"flowfin.dev/hub/internal/sweep"
 )
 
 func main() {
@@ -47,6 +48,8 @@ func run(args []string, out io.Writer) error {
 		return runHarness(args[1:], out)
 	case "sources":
 		return runSources(out)
+	case "sweep":
+		return runSweep(args[1:], out)
 	default:
 		usage(out)
 		return fmt.Errorf("unknown verb %q", args[0])
@@ -75,6 +78,50 @@ func runSources(out io.Writer) error {
 	resolutions := sources.Resolve(context.Background(), client, declarations)
 	fmt.Fprint(out, sources.Report(resolutions))
 	return sources.Judge(resolutions)
+}
+
+// runSweep says which scheduled runs ended in something other than success, and
+// with the word `raise` opens a tracking issue for each one nothing is holding.
+//
+// It reaches the network and the tracker, so it is a verb somebody or a
+// schedule runs rather than a leg: decisions/headless-and-unelevated.md keeps a
+// merge from depending on a service being up, and no merge should depend on the
+// tracker at all. Reporting and raising are two words for the same reason the
+// harness has two: finding out what this does must not be done by doing it.
+func runSweep(args []string, out io.Writer) error {
+	raising := false
+	switch {
+	case len(args) == 1 && args[0] == "raise":
+		raising = true
+	case len(args) > 0:
+		return fmt.Errorf("the only word after sweep is `raise`, and %q was given", strings.Join(args, " "))
+	}
+
+	repository := os.Getenv("GITHUB_REPOSITORY")
+	if repository == "" {
+		// The name is not written into this tree. no-hardcoded-names refuses an
+		// account name in source, and a sweep pointed at a second repository
+		// should be a variable rather than an edit.
+		return fmt.Errorf("GITHUB_REPOSITORY names the repository to sweep, and it is not set")
+	}
+
+	client := sweep.New()
+	client.Repository = repository
+	client.Token = os.Getenv("GITHUB_TOKEN")
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	var raiser sweep.Raiser
+	if raising {
+		if client.Token == "" {
+			return fmt.Errorf("raising an issue needs GITHUB_TOKEN, and it is not set")
+		}
+		raiser = client
+	}
+	return sweep.Sweep(context.Background(), out, os.DirFS(wd), client, raiser)
 }
 
 func runGate(asked []string, out io.Writer) error {
@@ -146,7 +193,7 @@ func runHarness(args []string, out io.Writer) error {
 }
 
 func usage(out io.Writer) {
-	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
+	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
 		strings.Join(gate.Names(gate.Legs()), ", "),
 		strings.Join(harness.Names(harness.Requirements()), ", "))
 }

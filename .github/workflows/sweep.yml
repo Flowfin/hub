@@ -1,0 +1,64 @@
+# The sweep over the scheduled runs, which is not the gate and blocks no merge.
+#
+# Everything that runs on a schedule fails silently: nobody is in front of it at
+# the time it runs, and the first symptom of a broken publish is somebody asking
+# why a version is old. This job reads the recent runs of every workflow in this
+# tree that declares a schedule, and opens one tracking issue per distinct
+# failure. internal/sweep is where the derivation and the deduplication are, and
+# every part of both is decided against a fixture rather than here.
+#
+# It derives itself into its own watch, because this file declares a schedule
+# too. A sweep run that dies cannot report its own death; the next run that
+# lives reports it, so the cover on this file is a delay rather than a gap. That
+# is stated here rather than left for a reader to work out.
+#
+# Hardened the way every other workflow here is: actions SHA-pinned with a
+# version comment, checkout without persisted credentials, read-only at the top
+# level, and the one write scope granted on the job that needs it.
+name: Sweep
+
+on:
+  # Once a day, after the other schedules in this tree have run, so a failure
+  # from last night is reported this morning rather than a week later.
+  schedule:
+    - cron: "43 6 * * *"
+  # And on request, which is how a change to the sweep is tried out.
+  workflow_dispatch:
+
+# Read-only by default. The job below adds the two scopes it needs and nothing
+# else: the run history to read, and the tracker to write one issue to.
+permissions:
+  contents: read
+
+# A superseded run waits rather than being cancelled. Cancelling mid-sweep can
+# leave a failure read and its issue unraised, which is silence with a green
+# tick over it, and this workflow exists against exactly that.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    name: "Sweep: scheduled runs"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # The run history of this repository's workflows.
+      actions: read
+      # The one write in this tree: the tracking issue.
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # go.mod is the authority for the version floor, so it is read rather
+          # than restated here where it would drift.
+          go-version-file: go.mod
+      - name: Report a scheduled run that failed
+        run: go run . sweep raise
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
