@@ -1,9 +1,10 @@
-# The trigger block written on one line, which is legal and which this tree
-# does not use. Refusing it would put the file outside the watch, which is the
-# silence this check exists against.
+# The trigger block written on one line, which is legal and which this tree does
+# not use. A schedule cannot be declared this way: it is the one trigger that
+# carries its own settings, so it has to be a key with a cron under it, and the
+# form below can only ever be a workflow with no schedule.
 name: Inline
 
-on: [push, schedule]
+on: [push, workflow_dispatch]
 
 permissions:
   contents: read
@@ -12,5 +13,6 @@ jobs:
   run:
     name: Run
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - run: echo inline

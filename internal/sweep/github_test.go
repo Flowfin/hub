@@ -199,7 +199,7 @@ func TestASweepOverACleanHistorySaysWhatItExamined(t *testing.T) {
 		t.Errorf("a clean history raised %d issue(s)", len(tr.raised))
 	}
 	report := out.String()
-	for _, want := range []string{"watched 2 scheduled workflow(s)", "nightly.yml", "outside this watch",
+	for _, want := range []string{"watched 1 scheduled workflow(s)", "nightly.yml", "outside this watch",
 		"no watched workflow ended in anything other than success"} {
 		if !strings.Contains(report, want) {
 			t.Errorf("the report does not carry %q:\n%s", want, report)

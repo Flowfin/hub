@@ -146,13 +146,14 @@ func DeclaresSchedule(r io.Reader) (bool, error) {
 			}
 			sawTrigger = true
 
-			// `on: [push, schedule]` and `on: push` put the whole block on one
-			// line. Reading them is cheaper than refusing them, and a file this
-			// reader refused would be a file outside the watch.
+			// `on: push` and `on: [push, workflow_dispatch]` put the whole block
+			// on one line, which is legal and which this tree does not use.
+			// Such a block never declares a schedule: a schedule is the trigger
+			// that carries its own settings, so it has to be a key with a cron
+			// under it, and the server refuses the word in a flow sequence.
+			// Reading the form is still worth it, because a file this reader
+			// refused would be a file outside the watch.
 			if inline := strings.TrimSpace(stripComment(rest)); inline != "" {
-				if namesSchedule(inline) {
-					scheduled = true
-				}
 				inTriggers = false
 			}
 			continue
@@ -388,16 +389,6 @@ func Report(watched, unwatched, never []string, fresh, held []Failure, raised ma
 			f.Workflow, f.Conclusion, number, len(f.Runs))
 	}
 	return b.String()
-}
-
-func namesSchedule(inline string) bool {
-	inline = strings.Trim(inline, "[]")
-	for _, part := range strings.Split(inline, ",") {
-		if unquote(strings.TrimSpace(part)) == "schedule" {
-			return true
-		}
-	}
-	return false
 }
 
 // stripComment removes a trailing comment from a value.

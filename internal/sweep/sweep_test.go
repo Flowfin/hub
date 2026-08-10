@@ -16,10 +16,7 @@ func TestScheduledDerivesTheSetFromTheTriggerBlocks(t *testing.T) {
 		t.Fatalf("Scheduled: %v", err)
 	}
 
-	want := []string{
-		WorkflowDir + "/inline-trigger-list.yml",
-		WorkflowDir + "/nightly.yml",
-	}
+	want := []string{WorkflowDir + "/nightly.yml"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Errorf("watched set is %v, want %v", got, want)
 	}
@@ -58,6 +55,25 @@ func TestAKeyBelowATriggerIsNotATrigger(t *testing.T) {
 	}
 	if scheduled {
 		t.Error("an input named schedule was read as a schedule trigger")
+	}
+}
+
+func TestATriggerBlockOnOneLineIsReadRatherThanRefused(t *testing.T) {
+	// The form is legal and this tree does not use it. It can never declare a
+	// schedule, because a schedule carries a cron and so has to be a key; what
+	// matters is that the file is read at all, since one this reader refused
+	// would be a file outside the watch.
+	body, err := os.ReadFile(fixtureTree + "/" + WorkflowDir + "/inline-trigger-list.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	scheduled, err := DeclaresSchedule(strings.NewReader(string(body)))
+	if err != nil {
+		t.Fatalf("a trigger block on one line was refused: %v", err)
+	}
+	if scheduled {
+		t.Error("a trigger block on one line was read as declaring a schedule")
 	}
 }
 
