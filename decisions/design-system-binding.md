@@ -90,8 +90,12 @@ The values live in one machine-readable file, and it becomes the authority for
 them. The published page then renders from that file or is checked against it, so
 the disagreement found above cannot be reintroduced by editing one of the two. The
 file is `docs/design-tokens.json`, which #39 extracted, and the check that holds
-the page to it is #40. Until that check exists, the two can still disagree; what
-the file changes today is that the disagreement has a side that is right.
+the page to it is `Gate: page-matches-the-token-file`, over
+`docs/design-system.html`. It refuses in both directions, so a value the page
+declares that the file does not and a token the page never renders are each a red
+gate. `docs/index.html` is a served page and is not its subject: it carries its
+own six abbreviations for the same palette, and that divergence is real and is
+not held by anything today.
 
 The rules stay prose, on the published page, and they are applied by a person
 reviewing a client. They are not moved into the token file in a weakened form that
@@ -147,11 +151,12 @@ where the number lives until it does.
 
 Every other sentence above is prose.
 
-The parts that can become mechanisms are named: #39 extracts the values, #40 checks
-the published page against them, #41 writes the method that makes a measurement
-comparable, and #42 states how a client declares conformance. Until those land, a
-client's conformance is a claim it makes about itself, and this file does not turn
-that claim into evidence.
+The parts that can become mechanisms are named: #39 extracts the values,
+`Gate: page-matches-the-token-file` checks the published page against them, #41
+writes the method that makes a measurement comparable, and #42 states how a client
+declares conformance. Until the two that are still open land, a client's
+conformance is a claim it makes about itself, and this file does not turn that
+claim into evidence.
 
 The rules in the second section stay unrefusable after all four land, and that is
 their terminal state rather than a gap waiting on a check.
