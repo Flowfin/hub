@@ -42,8 +42,9 @@ Run 2026-08-08.
 
 `guid` is a string, the plugin's identity, lowercase hexadecimal with hyphens. It
 comes from the release's own build descriptor and never from a value typed here,
-which is #26. It is the one field a server matches an installed plugin against, so
-a changed guid is a different plugin rather than an update.
+which is `decisions/plugin-identity.md`. It is the one field a server matches an
+installed plugin against, so a changed guid is a different plugin rather than an
+update.
 
 `name` is a string, the display name, from the same descriptor.
 
@@ -220,7 +221,8 @@ is a format decision two people read differently.
 
 ## What this does not settle
 
-Whose name `owner` carries, which is entry 4 of #1. Where the values come from in
-detail, which is #26. What the generator does when a value cannot be resolved,
-which is `decisions/failure-posture.md`. And whether the file is served from one
-address or two, which is `decisions/channel-model.md`.
+Whose name `owner` carries, which is entry 4 of #1. Where the plugin-level values
+come from in detail, which is `decisions/plugin-identity.md`. What the generator
+does when a value cannot be resolved, which is `decisions/failure-posture.md`. And
+whether the file is served from one address or two, which is
+`decisions/channel-model.md`.
