@@ -24,6 +24,7 @@ import (
 	"flowfin.dev/hub/internal/gate"
 	"flowfin.dev/hub/internal/harness"
 	"flowfin.dev/hub/internal/releases"
+	"flowfin.dev/hub/internal/scan"
 	"flowfin.dev/hub/internal/sources"
 	"flowfin.dev/hub/internal/sweep"
 )
@@ -48,6 +49,8 @@ func run(args []string, out io.Writer) error {
 		return runHarness(args[1:], out)
 	case "sources":
 		return runSources(out)
+	case "scan":
+		return runScan(args[1:], out)
 	case "sweep":
 		return runSweep(args[1:], out)
 	default:
@@ -122,6 +125,28 @@ func runSweep(args []string, out io.Writer) error {
 		raiser = client
 	}
 	return sweep.Sweep(context.Background(), out, os.DirFS(wd), client, raiser)
+}
+
+// runScan decides a code scanning run from the report it wrote.
+//
+// It is a verb rather than a leg of the gate, and that is the one place this
+// board departs from the shape decisions/gate-parity.md gives every other
+// adopted leg. A leg's contract is that a contributor runs the same command
+// before pushing, and the analyser is not in the toolchain decisions/means.md
+// fixes, so `go run . gate` could not honour that for it. What is here instead
+// is the half that decides: the analysis writes a report on the runner and this
+// reads it, so a finding blocks rather than annotating, which is the property
+// the target's leg carries and the one worth keeping.
+func runScan(args []string, out io.Writer) error {
+	if len(args) != 1 {
+		return fmt.Errorf("scan takes the one directory the analysis wrote its report into, and %d word(s) were given", len(args))
+	}
+
+	reports, tools, found, err := scan.Judge(os.DirFS(args[0]))
+	if err != nil {
+		return err
+	}
+	return scan.Report(out, args[0], reports, tools, found)
 }
 
 func runGate(asked []string, out io.Writer) error {

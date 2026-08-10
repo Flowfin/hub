@@ -1,0 +1,23 @@
+{
+    "version": "2.1.0",
+    "runs": [
+        {
+            "tool": { "driver": { "name": "CodeQL", "semanticVersion": "2.0.0" } },
+            "results": [
+                {
+                    "ruleId": "go/path-injection",
+                    "level": "error",
+                    "message": { "text": "This path depends on a user-provided value." },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": { "uri": "internal/example/read.go" },
+                                "region": { "startLine": 42 }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
