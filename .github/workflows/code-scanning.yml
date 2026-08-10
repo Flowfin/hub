@@ -1,0 +1,94 @@
+# Static analysis of this repository's own source (CodeQL over Go).
+#
+# decisions/gate-parity.md records the target's CodeQL and Analyze (csharp) as
+# one analysis over one language, adapted here by changing the language. What
+# carries over unchanged is that a finding blocks rather than annotates.
+#
+# That last property is the reason this file has a step after the analysis. The
+# analyse step uploads its results and exits zero whether it found anything or
+# not, so a job that stopped there would be green with findings in it, and the
+# only trace would be a row in a tab nobody opens. `go run . scan` reads the
+# report the analysis wrote and exits non-zero on any result.
+#
+# The reading is a Go verb rather than a jq expression here, which is what
+# decisions/means.md asks: enforcement logic in a workflow is logic in a language
+# this tree has no suite for, and its failure mode is silent, since an expression
+# that matches nothing and a report that contains nothing print the same thing.
+# internal/scan carries a fixture for every refusal, including the three that are
+# the analysis having not happened rather than the analyser having found nothing.
+#
+# It is not a leg of `go run . gate`, and that is stated rather than left to be
+# noticed. A leg's contract is that a contributor runs the same command before
+# pushing, and the analyser is not in the toolchain decisions/means.md fixes, so
+# no leg here could honour it. DCO sign-off, the Trojan Source guard and the
+# workflow audit are adopted on the same terms.
+name: Code Scanning
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ "**" ]
+
+# Explicit deny-all at workflow level; the job below grants only what it needs.
+permissions: {}
+
+# A superseded run on the same ref is cancelled. This is an analysis of a
+# checkout and writes nothing anybody is waiting on, so a cancelled run costs a
+# rerun and nothing else.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyse:
+    name: Code scanning (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write # upload the SARIF into the code-scanning tab
+      contents: read # checkout the source to analyse
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # go.mod is the authority for the version floor, so it is read rather
+          # than restated here where it would drift. The analysis builds the
+          # tree, so it needs the same toolchain the gate does.
+          go-version-file: go.mod
+
+      - name: Initialise the analysis
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          languages: go
+          build-mode: autobuild
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          category: "/language:go"
+          # The report is written here and the upload is a separate step, so the
+          # verdict below does not depend on the upload having been possible. A
+          # fork's token cannot write security events, and a run from a fork
+          # still has to be judged.
+          output: sarif-results
+          upload: never
+
+      - name: Upload the report
+        # Only where the token can write security events: pushes to main and
+        # same-repository pull requests. continue-on-error keeps the verdict
+        # independent of the upload, so a transient failure here does not skip
+        # the step below.
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event.pull_request.head.repo.full_name == github.repository)
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          sarif_file: sarif-results
+          category: "/language:go"
+
+      - name: Fail on any finding
+        run: go run . scan sarif-results

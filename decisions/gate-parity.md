@@ -97,11 +97,30 @@ that `CONTRIBUTING.md` spends a section on. An SBOM of nothing is a file nobody
 reads. The condition that reverses this is the first `require` line in `go.mod`,
 not a date.
 
-**CodeQL** and **Analyze (csharp).** ADAPTED, and this is #44's to land rather
-than this document's. The target's two names are one analysis over one language.
-Go is a language the same scanner supports, so the leg has something to look at
-here and is adopted with its language changed; what carries over unchanged is
-that a finding blocks rather than annotates.
+**CodeQL** and **Analyze (csharp).** ADAPTED, landed as `Code scanning (Go)` in
+`.github/workflows/code-scanning.yml`. The target's two names are one analysis
+over one language. Go is a language the same scanner supports, so it has
+something to look at here and is adopted with its language changed.
+
+What carries over unchanged is that a finding blocks rather than annotates, and
+that half is not free. The analyse step uploads its results and exits zero
+whether it found anything or not, so a job that stopped there would be green with
+findings in it. `go run . scan` reads the report the analysis wrote and exits
+non-zero on any result. It is a Go verb over a directory rather than an
+expression in the workflow, which is what `decisions/means.md` asks for, and
+`internal/scan` carries a fixture for each of its refusals.
+
+Three of those four refusals are the analysis having NOT happened rather than the
+analyser having found nothing: no report written at all, a report that is not the
+document the format is, and a report carrying no run or naming no tool. Each of
+them produces exactly the output a clean analysis produces from the step above,
+which is why each is refused by name.
+
+It is not a leg of `go run . gate`, and it is the one adapted item on this list
+that is not. A leg's contract is that a contributor runs the same command before
+pushing, and the analyser is not in the toolchain `decisions/means.md` fixes, so
+no leg could honour that for it. DCO sign-off, the Trojan Source guard and the
+workflow audit are adopted on the same terms and for the same reason.
 
 **DCO sign-off.** ADOPTED, unchanged, and already required. Same workflow shape,
 same certificate, same refusal of a non-merge commit without the line.
