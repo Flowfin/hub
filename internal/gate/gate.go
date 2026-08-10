@@ -200,11 +200,32 @@ func Legs() []Leg {
 			// a wrong value: it is one of ten palettes having gone unreadable,
 			// and the reader it fails is the one least able to compensate for
 			// it. Its subject is the token file rather than the served page,
-			// because that file is the authority for these values; #40 is what
-			// holds the page to it.
+			// because that file is the authority for these values, and the leg
+			// below is what holds the page to it.
 			Name:    "focus-stands-off-every-surface",
 			Argv:    []string{"go", "test", "./internal/contrast", "-run", "TestTheDesignSystemsFocusColourStandsOffEverySurface", "-count=1"},
 			Refuses: "a focus colour that does not stand off a surface it is drawn on, in any brightness scheme and colour-vision preset",
+		},
+		{
+			// page-matches-the-token-file, which #40 asks for. Its own leg
+			// rather than a widening of the one above because the two ask
+			// different questions of the same file: that one asks whether the
+			// declared values are legible, this one asks whether the page and
+			// the file still say the same thing. A value that is legible and
+			// no longer rendered anywhere passes the first and fails this.
+			//
+			// It refuses in both directions on purpose. A leg that only
+			// refused untracked values in the page would let the file keep
+			// entries nothing renders, and one that only refused unused
+			// entries would let the page grow colours nobody declared.
+			//
+			// It passes -v for the reason pr-hygiene does. Half of what it
+			// delivers is the count of values it compared and the sentence
+			// naming the served page it does not read, and go test throws a
+			// passing test's log away without it.
+			Name:    "page-matches-the-token-file",
+			Argv:    []string{"go", "test", "./internal/tokens", "-run", "TestTheServedPageMatchesTheTokenFile", "-count=1", "-v"},
+			Refuses: "a value the served design system page declares that the token file does not, and a token the page does not render",
 		},
 		{
 			// pr-hygiene, adapted from the plugin board's leg of that name in

@@ -11,9 +11,9 @@
 //
 // Its subject is docs/design-tokens.json rather than the served page, because
 // that file is the authority for these values and a client on another platform
-// reads it rather than the page. What holds the page to the file is #40, and
-// until that exists a green here says the declared values are legible and says
-// nothing about what the page renders.
+// reads it rather than the page. What holds the page to the file is
+// internal/tokens, so a green here says the declared values are legible and
+// leaves whether the page still renders them to that leg.
 //
 // What it does not reach, so that a green is not read as more than it is. The
 // text colours are not preset-dependent and are not judged here: ink, ink-2 and
