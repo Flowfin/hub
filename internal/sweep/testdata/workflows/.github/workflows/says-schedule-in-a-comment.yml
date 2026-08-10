@@ -1,0 +1,24 @@
+# The near-miss. This file explains that a schedule is deliberately excluded,
+# so the word stands here in a comment and nowhere a trigger could stand. A
+# reader that greps watches this file forever and never reports anything about
+# it, because it never runs on a schedule and so never fails on one.
+name: Asked for deliberately
+
+on:
+  # A schedule is excluded as well as push: a run nobody asked for produces a
+  # red nobody is holding.
+  workflow_dispatch:
+    inputs:
+      requirement:
+        description: "which requirement to ask for"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  ask:
+    name: Ask
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo asked

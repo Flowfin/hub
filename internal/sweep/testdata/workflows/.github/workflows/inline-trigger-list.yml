@@ -1,0 +1,16 @@
+# The trigger block written on one line, which is legal and which this tree
+# does not use. Refusing it would put the file outside the watch, which is the
+# silence this check exists against.
+name: Inline
+
+on: [push, schedule]
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    name: Run
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo inline

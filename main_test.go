@@ -96,6 +96,71 @@ func TestTwoRequirementsAtOnceAreRefused(t *testing.T) {
 	}
 }
 
+func TestAnUnknownWordAfterSweepIsRefusedBeforeAnythingIsRead(t *testing.T) {
+	// The two words this verb takes are far apart in what they do, and the one
+	// that writes is the one somebody would reach for by guessing. A verb that
+	// treated an unrecognised word as the reporting run would write nothing and
+	// say so, which reads as the tracker being clean.
+	t.Setenv("GITHUB_REPOSITORY", "an-account/a-repository")
+
+	var out strings.Builder
+	err := run([]string{"sweep", "raise-them"}, &out)
+	if err == nil {
+		t.Fatal("an unknown word after sweep exited zero")
+	}
+	if !strings.Contains(err.Error(), "raise-them") || !strings.Contains(err.Error(), "raise") {
+		t.Fatalf("the refusal does not name the typo and the word it takes: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("something ran before the word was checked:\n%s", out.String())
+	}
+}
+
+func TestTheSweepRefusesToGuessWhichRepositoryItIsSweeping(t *testing.T) {
+	// The name is not in this tree. A sweep that fell back to a default would
+	// report a clean history for a repository nobody asked about.
+	t.Setenv("GITHUB_REPOSITORY", "")
+
+	var out strings.Builder
+	err := run([]string{"sweep"}, &out)
+	if err == nil {
+		t.Fatal("a sweep with no repository named exited zero")
+	}
+	if !strings.Contains(err.Error(), "GITHUB_REPOSITORY") {
+		t.Fatalf("the refusal does not name what is missing: %v", err)
+	}
+}
+
+func TestRaisingWithoutATokenIsRefusedRatherThanAttempted(t *testing.T) {
+	// Unauthenticated, every read still answers and the write is refused at the
+	// end, so the run would read the whole history and then fail on the one
+	// thing it exists to do.
+	t.Setenv("GITHUB_REPOSITORY", "an-account/a-repository")
+	t.Setenv("GITHUB_TOKEN", "")
+
+	var out strings.Builder
+	err := run([]string{"sweep", "raise"}, &out)
+	if err == nil {
+		t.Fatal("raising with no token exited zero")
+	}
+	if !strings.Contains(err.Error(), "GITHUB_TOKEN") {
+		t.Fatalf("the refusal does not name what is missing: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("the run read something before refusing:\n%s", out.String())
+	}
+}
+
+func TestTheUsageNamesTheSweepAndItsWord(t *testing.T) {
+	var out strings.Builder
+	if err := run(nil, &out); err == nil {
+		t.Fatal("the entry point with no verb exited zero")
+	}
+	if !strings.Contains(out.String(), "go run . sweep [raise]") {
+		t.Fatalf("usage does not name the sweep and the word that writes:\n%s", out.String())
+	}
+}
+
 func TestTheHarnessReportRunsNothing(t *testing.T) {
 	// `go run . harness` with no requirement says what the harness holds. If it
 	// ran anything it would be reaching the network from a command somebody

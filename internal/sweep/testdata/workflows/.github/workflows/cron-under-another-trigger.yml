@@ -1,0 +1,23 @@
+# The other near-miss. A trigger's own settings sit one level deeper than the
+# trigger, and a reader that takes any key inside the block for a trigger reads
+# the word under a schedule elsewhere, or a job input called schedule, as one.
+name: Deeper keys
+
+on:
+  workflow_dispatch:
+    inputs:
+      schedule:
+        description: "when the operator wants it, as text"
+        required: false
+  push:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    name: Run
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo pushed
