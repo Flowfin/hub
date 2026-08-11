@@ -12,12 +12,15 @@ Jellyfin server. `decisions/manifest-address.md` is the rule an address has to
 meet before it may be printed in this tree, and it carries the request showing
 what the intended one answers today.
 
-The shape of that address is settled even though the name is not. It will be
-served from a domain this organisation controls rather than from a `github.io`
-address, so the organisation, the hosting and even the name can change later
-without breaking a single installation. A manifest URL that moves breaks every
-install silently: no error, the plugins simply never update again. Which name it
-is, and who registers it, is entry 2 of #1.
+The address is settled, name included, and it is served from a domain this
+organisation holds rather than from a `github.io` address, so the hosting and
+even the account behind it can change later without breaking a single
+installation. A manifest URL that moves breaks every install silently: no error,
+the plugins simply never update again. That was entry 2 of #1 and it is answered.
+
+What is missing is the file, not the name. The domain answers and the manifest
+does not, so there is still nothing worth pasting, and this section says so until
+there is.
 
 ## What is here
 

@@ -21,9 +21,26 @@ account name, a repository name and a branch name, so it carries all of the
 above plus one more thing that a routine cleanup can move, and it puts a third
 party's caching behaviour between the file and every server that fetches it.
 
-What is left is an address under a name this project holds and renews. Which
-name, at which registrar, and who pays for it, is not settled by this file. That
-is entry 2 of #1.
+What is left is an address under a name this project holds and renews. Which name
+that is was settled in entry 2 of #1 on 2026-08-09 and registered the same day,
+and it is the name `docs/CNAME` already carries. The registrar and the contact
+details behind it are part of that answer and are not written down here.
+
+The registration is where the obligation starts rather than where it ends. A
+renewal that lapses raises no error anywhere: it is the silent case at the top of
+this file arriving by a different route, with the name afterwards available to
+whoever registers it next. The answer says it belongs under a watch rather than
+in somebody's memory, and nothing in this tree is that watch:
+
+    grep -rni 'renew\|expir' --include=*.go --include=*.yml .
+    ./internal/address/answered_test.go:8:// lapsed renewal, an expired certificate, a publication run that stopped
+    ./internal/sources/resolve.go:225:// that resolved nothing because a credential expired produces exactly the file a
+    ./internal/sources/resolve_test.go:177:  // credentials expired produces exactly the file a correct run over an empty
+
+Run 2026-08-11 at 864f747. Three comments, none of them a reader of a renewal
+date. The nearest thing is the first of them, which asks whether the address
+answers when somebody runs the harness, and that catches a lapse after it has
+happened rather than before.
 
 ## When an address may be printed
 

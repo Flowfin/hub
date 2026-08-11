@@ -72,10 +72,12 @@ const RuleUnanswered = "an install address is printed only once it answers with 
 // repository.
 //
 // The last segment ending in manifest.json rather than being exactly
-// manifest.json, because entry 5 of #1 settled on two addresses, stable and
-// pre-release, and the second one's file name is not chosen yet. A pattern that
-// matched only the bare name would pass the first file to print the other
-// address, which is the same mistake one release later.
+// manifest.json. This was widened for a second published address, and entry 5 of
+// #1 settled on 2026-08-11 that there is only one, so that reason is gone and
+// the width is kept for the one that remains: the rule is about what an operator
+// does with a string on this project's own host, and a file printing a near miss
+// of the real name promises a manifest to whoever pastes it just as loudly as
+// the real name would.
 var installAddress = regexp.MustCompile(`(?i)https?://([a-z0-9.\-_~%]+)(?::\d+)?((?:/[a-z0-9.\-_~%]*)*?/[a-z0-9.\-_~%]*manifest\.json)`)
 
 // HostFile is where the site's own host is declared, and it is the authority

@@ -54,8 +54,14 @@ the same descriptor.
 `overview` is a string, the one-line text a server shows in the catalogue list,
 from the same descriptor.
 
-`owner` is a string, shown to the person installing the plugin. Which of the two
-names in this project it carries is not settled here. It is entry 4 of #1.
+`owner` is a string, shown to the person installing the plugin. It carries the
+publishing organisation, `Flowfin`, which entry 4 of #1 settled on 2026-08-11 for
+the reason that it is the name on the site and the domain the operator pasted.
+The cost is in that answer and is taken deliberately: the organisation is not the
+account that signs a release, so what a server displays and what a signature says
+are two different names. The answer puts the repair on the published page, which
+is to say plainly under which account releases are signed. The page does not say
+it yet, and no check reads for it.
 
 `category` is a string, the group a server files the plugin under, from the same
 descriptor.
@@ -221,8 +227,12 @@ is a format decision two people read differently.
 
 ## What this does not settle
 
-Whose name `owner` carries, which is entry 4 of #1. Where the plugin-level values
-come from in detail, which is `decisions/plugin-identity.md`. What the generator
-does when a value cannot be resolved, which is `decisions/failure-posture.md`. And
-whether the file is served from one address or two, which is
-`decisions/channel-model.md`.
+Where the plugin-level values come from in detail, which is
+`decisions/plugin-identity.md`. And what the generator does when a value cannot be
+resolved, which is `decisions/failure-posture.md`.
+
+Two things stood here until #1 answered them on 2026-08-11. Whose name `owner`
+carries, which is entry 4 and is now in the field list above. And whether the file
+is served from one address or two, which is entry 5 and is one;
+`decisions/channel-model.md` holds what follows, and the split it describes is
+unchanged by the answer because it was built to survive either one.

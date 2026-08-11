@@ -52,7 +52,11 @@ published under, as separate fields, because they are separate facts and
 collapsing them is how the wrong one ends up in the manifest's owner field.
 
 Which of the two names the manifest's owner field carries is a different
-question and is not settled here. That is entry 4 of #1.
+question and is not settled here. Entry 4 of #1 settled it on 2026-08-11 with the
+publishing organisation, and `decisions/manifest-schema.md` is where the field is
+described. The rule above is what keeps that answer a value the generator reads
+out of the declaration rather than a word somebody typed into the generator, so
+the day it is revisited is a day one file changes.
 
 ## The check that refuses a violation
 

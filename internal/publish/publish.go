@@ -54,10 +54,11 @@ import (
 
 // Target is a place bytes are published to, relative to the repository root.
 //
-// It is a value rather than two constants because entry 5 of #1 settled on two
-// published addresses, stable and pre-release, and the second one's file name is
-// not chosen yet. A pair of constants would have to be edited into a pair of
-// pairs on the day it is.
+// It is a value rather than two constants because a published address is a
+// directory and a file name together and the two are settled in different
+// places, so the pair travels as one thing. Entry 5 of #1 settled on one
+// published address, finished builds only, which is why there is one target
+// below; a second would be another value rather than an edit to this one.
 type Target struct {
 	// Dir is the directory the file is placed in.
 	Dir string
