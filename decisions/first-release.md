@@ -55,9 +55,9 @@ The other eleven plugins. They enter the catalogue when they publish a release,
 through the same pipeline and with no change here, and that is the property the
 first release is proving.
 
-A test channel. Whether pre-release builds get a second address at all is entry 5
-of #1 and is not settled. The first release ships the stable list only, which
-does not foreclose the answer.
+A test channel. Entry 5 of #1 answered on 2026-08-11 that pre-release builds get
+no second address, so the first release ships the finished list and there is no
+second list waiting behind it.
 
 The clients. This repository holds the design system they are held to, not the
 clients themselves, and nothing an operator does in the sequence above involves
@@ -80,22 +80,27 @@ a judgement rather than a derivation, and the current state of each one is:
         --jq '"\(.number)\t\(.state)\t\(.title)"'
     done
 
-Three answers out of #1 are load-bearing here. The license, because a catalogue
-with no license is a catalogue nobody can package. The address, because it is the
-one thing an operator types and it cannot be changed afterwards. And whose name
-the catalogue carries, because it is rendered on every server that lists a
-plugin. The remaining two entries of #1 do not block: the site's language does
-not touch the sequence, and the test channel is out of scope above.
+Three answers out of #1 are load-bearing here and all three are now given. The
+license, because a catalogue with no license is a catalogue nobody can package,
+and `LICENSE` at the root carries one. The address, because it is the one thing
+an operator types and it cannot be changed afterwards. And whose name the
+catalogue carries, because it is rendered on every server that lists a plugin,
+which entry 4 answered on 2026-08-11 with the publishing organisation. The
+remaining two entries do not block either: the site's language does not touch
+the sequence, and entry 5 settled that there is no second channel to build.
 
-On the address, the name now answers even though the manifest does not:
+None of that is a plugin entry. What stands between this list and an install is
+work rather than an answer, and the address is where it shows:
 
     curl -sS -o /dev/null -w "%{http_code}\n" https://flowfin.dev/
     200
     curl -sS -o /dev/null -w "%{http_code}\n" https://flowfin.dev/manifest.json
     404
 
-Run 2026-08-08. That is a fact about DNS and hosting rather than a decision, and
-entry 2 of #1 is what settles the decision.
+Run 2026-08-11 against the tree at 864f747, and the same two codes on 2026-08-08.
+The site has answered on both dates and the manifest has never existed, so the
+404 is the generator and the publication route rather than anything the domain
+decision left undone.
 
 ## What does not block it
 

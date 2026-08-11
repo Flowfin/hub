@@ -15,10 +15,15 @@ The generator produces one file per channel, and each channel that is switched o
 has its own address. Today one channel is switched on, the finished one, so one
 address exists.
 
-Whether a test channel is ever offered to the public is entry 5 of #1 and is not
-decided here. What is decided here is that answering it is a configuration change
-rather than a redesign: the classification below runs on every release whatever
-the answer, so a second channel is a second output file from a split that has
+No test channel is offered to the public. That is entry 5 of #1, answered on
+2026-08-11: one address, finished builds only. The permanence this file opens
+with is what the answer turns on, because it would otherwise be promised twice,
+and a channel that is not published yet can still be published later while an
+address that exists cannot be withdrawn.
+
+What was decided here rather than there does not move with that answer: the
+classification below runs on every release whether or not a second list is ever
+published, so switching one on is a second output file from a split that has
 already been made, and the generator does not learn a new concept on the day
 somebody says yes.
 
