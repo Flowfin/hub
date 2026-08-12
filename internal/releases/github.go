@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"flowfin.dev/hub/internal/pairing"
 	"flowfin.dev/hub/internal/sources"
 )
 
@@ -58,8 +59,42 @@ func New() *Client {
 }
 
 type apiRelease struct {
-	TagName    string `json:"tag_name"`
-	Prerelease bool   `json:"prerelease"`
+	TagName     string     `json:"tag_name"`
+	Prerelease  bool       `json:"prerelease"`
+	PublishedAt time.Time  `json:"published_at"`
+	Assets      []apiAsset `json:"assets"`
+}
+
+// apiAsset is one attached file, and the address it takes is the one that
+// answers with the file.
+//
+// An asset carries two addresses. `url` is the API's own asset endpoint, which
+// answers with a description of the asset unless the request asks for octets,
+// so a fetch pointed at it succeeds and returns JSON where the archive's bytes
+// were expected. `browser_download_url` answers with the file. The two differ in
+// host as well as in path, so the mistake is not visible in a diff of one word.
+//
+// Size is read because it is the only thing that keeps a sidecar search off a
+// release's whole payload: internal/pairing reads every asset under
+// MaxSidecarBytes looking for a checksum line, and an asset whose size is
+// unknown is an asset under any bound.
+type apiAsset struct {
+	Name string `json:"name"`
+	URL  string `json:"browser_download_url"`
+	Size int64  `json:"size"`
+}
+
+// release converts one listed release into the model the layers above read.
+func (r apiRelease) release() sources.Release {
+	out := sources.Release{
+		Tag:        r.TagName,
+		Prerelease: r.Prerelease,
+		Published:  r.PublishedAt,
+	}
+	for _, a := range r.Assets {
+		out.Assets = append(out.Assets, pairing.Asset{Name: a.Name, URL: a.URL, Size: a.Size})
+	}
+	return out
 }
 
 // ListReleases reads every page of a repository's releases.
@@ -91,7 +126,7 @@ func (c *Client) ListReleases(ctx context.Context, account, repository string) (
 			return nil, "", err
 		}
 		for _, r := range body {
-			out = append(out, sources.Release{Tag: r.TagName, Prerelease: r.Prerelease})
+			out = append(out, r.release())
 		}
 		next = nextLink(link)
 	}

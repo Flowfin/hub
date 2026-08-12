@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
+	"flowfin.dev/hub/internal/pairing"
 	"flowfin.dev/hub/internal/sources"
 )
 
@@ -64,6 +67,107 @@ func pages(t *testing.T, fullName string, tags []string, per int) http.Handler {
 		fmt.Fprint(w, b.String())
 	})
 	return mux
+}
+
+// oneRelease serves a single release verbatim, so a test can state the response
+// shape it is reading rather than build it out of a helper's idea of one.
+func oneRelease(t *testing.T, fullName, release string) http.Handler {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if !strings.HasSuffix(r.URL.Path, "/releases") {
+			fmt.Fprintf(w, `{"full_name": %q}`, fullName)
+			return
+		}
+		fmt.Fprintf(w, "[%s]", release)
+	})
+	return mux
+}
+
+func TestAReleaseCarriesItsAssetsAndItsPublicationTime(t *testing.T) {
+	// Neither is decoration. The archive and the checksum that names it are
+	// selected out of the asset list, and the publication time is the order
+	// decisions/failure-posture.md is written in terms of, which decides whether
+	// a defect stops the run or is skipped by name.
+	c := clientFor(t, oneRelease(t, "an-account/plugin", `{
+		"tag_name": "1.2.3.4-stable",
+		"prerelease": false,
+		"published_at": "2026-08-12T05:47:37Z",
+		"assets": [
+			{"name": "a-plugin_1.2.3.4.zip", "size": 594668,
+			 "browser_download_url": "https://example.com/download/a-plugin_1.2.3.4.zip"},
+			{"name": "a-plugin_1.2.3.4.zip.md5sum", "size": 74,
+			 "browser_download_url": "https://example.com/download/a-plugin_1.2.3.4.zip.md5sum"}
+		]
+	}`))
+
+	got, _, err := c.ListReleases(context.Background(), "an-account", "plugin")
+	if err != nil {
+		t.Fatalf("ListReleases: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("read %d releases", len(got))
+	}
+
+	want := []pairing.Asset{
+		{Name: "a-plugin_1.2.3.4.zip", URL: "https://example.com/download/a-plugin_1.2.3.4.zip", Size: 594668},
+		{Name: "a-plugin_1.2.3.4.zip.md5sum", URL: "https://example.com/download/a-plugin_1.2.3.4.zip.md5sum", Size: 74},
+	}
+	if !slices.Equal(got[0].Assets, want) {
+		t.Errorf("the release's assets came back as %+v, want %+v", got[0].Assets, want)
+	}
+	if !got[0].Published.Equal(time.Date(2026, 8, 12, 5, 47, 37, 0, time.UTC)) {
+		t.Errorf("the publication time came back as %v", got[0].Published)
+	}
+}
+
+func TestTheAssetAddressIsTheOneThatAnswersWithTheFile(t *testing.T) {
+	// An asset carries two addresses and only one of them answers with the file.
+	// A fetch pointed at the other one succeeds, which is why this is a test
+	// rather than something a run would notice.
+	c := clientFor(t, oneRelease(t, "an-account/plugin", `{
+		"tag_name": "1.0.0.0-stable",
+		"assets": [
+			{"name": "a-plugin_1.0.0.0.zip", "size": 12,
+			 "url": "https://example.net/repos/an-account/plugin/releases/assets/1",
+			 "browser_download_url": "https://example.com/download/a-plugin_1.0.0.0.zip"}
+		]
+	}`))
+
+	got, _, err := c.ListReleases(context.Background(), "an-account", "plugin")
+	if err != nil {
+		t.Fatalf("ListReleases: %v", err)
+	}
+	if len(got) != 1 || len(got[0].Assets) != 1 {
+		t.Fatalf("read %d releases", len(got))
+	}
+	if address := got[0].Assets[0].URL; address != "https://example.com/download/a-plugin_1.0.0.0.zip" {
+		t.Errorf("the asset's address is %q, which is the endpoint that describes it rather than the one that serves it", address)
+	}
+}
+
+func TestAReleaseWithNoPublicationTimeIsReadRatherThanRefused(t *testing.T) {
+	// A run that fails its whole read because one release in a history carries a
+	// null in one field learns nothing about the other fifty. The zero time is
+	// the honest answer, and what a classification does with a release it cannot
+	// place in time is that layer's question.
+	c := clientFor(t, oneRelease(t, "an-account/plugin", `{
+		"tag_name": "1.0.0.0-stable",
+		"published_at": null,
+		"assets": []
+	}`))
+
+	got, _, err := c.ListReleases(context.Background(), "an-account", "plugin")
+	if err != nil {
+		t.Fatalf("a null publication time refused the read: %v", err)
+	}
+	if len(got) != 1 || got[0].Tag != "1.0.0.0-stable" {
+		t.Fatalf("read %d releases", len(got))
+	}
+	if !got[0].Published.IsZero() {
+		t.Errorf("a release with no publication time came back as %v", got[0].Published)
+	}
 }
 
 func TestEveryPageIsRead(t *testing.T) {
