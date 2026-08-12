@@ -50,10 +50,14 @@ func TestRefusesAnInstallAddressNobodyHasReadYet(t *testing.T) {
 	}
 }
 
-func TestRefusesTheOtherChannelsAddressToo(t *testing.T) {
-	// Entry 5 of #1 settled on two addresses and only one file name is chosen.
-	// A pattern matching the bare name would pass the first file to print the
-	// second address, which is this same mistake one release later.
+func TestRefusesANearMissOfThePublishedNameToo(t *testing.T) {
+	// Four near misses of the published address: another file name, a deeper
+	// path, another scheme and port, another case. The first two are why the
+	// predicate matches a last segment ending in manifest.json rather than one
+	// that is exactly manifest.json. Each of the four is a string somebody
+	// pastes into a repositories list, and none of them is recorded as
+	// answering, so a file printing one promises a manifest just as loudly as
+	// the published name would.
 	for _, printed := range []string{
 		at(t, "/prerelease-manifest.json"),
 		at(t, "/channels/stable-manifest.json"),
