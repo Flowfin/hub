@@ -126,14 +126,29 @@ func (s State) Fatal() bool {
 type Resolution struct {
 	Declaration Declaration
 	State       State
-	// Finished and Test are the two sides of the channel split, counted rather
-	// than carried, because a pattern that quietly emptied a channel is
-	// otherwise indistinguishable from a plugin that stopped releasing.
+	// Finished and Test are how many releases fell on each side of the channel
+	// split. They are counted here as well as derivable from Releases below,
+	// because the report prints them: a pattern that quietly emptied a channel
+	// is otherwise indistinguishable from a plugin that stopped releasing.
 	Finished int
 	Test     int
 	// Detail says what happened in words a person can act on.
 	Detail string
-	// Releases are the finished ones, for the layers that build entries.
+
+	// Releases are every release the repository published, in the order they
+	// were read. Which side of the split one is on is the declaration's pattern
+	// applied to its tag, which is Declaration.IsFinished, and the declaration
+	// is here, so this carries no second copy of that answer.
+	//
+	// Both sides are kept because the two rules above this layer read different
+	// sets. decisions/channel-model.md publishes the finished ones and nothing
+	// else, and decisions/plugin-identity.md takes a plugin's identity from the
+	// newest release carrying a descriptor whichever channel that release is
+	// in, for the reason that one plugin published under two names is a guid a
+	// server cannot resolve. A resolution holding only the publishable side
+	// cannot answer the second rule, and on a repository whose descriptors are
+	// newer than its finished releases it would answer that the plugin has no
+	// identity at all.
 	Releases []Release
 }
 
@@ -190,10 +205,10 @@ func resolveOne(ctx context.Context, lister Lister, d Declaration) Resolution {
 		return r
 	}
 
+	r.Releases = releases
 	for _, rel := range releases {
 		if d.IsFinished(rel.Tag) {
 			r.Finished++
-			r.Releases = append(r.Releases, rel)
 			continue
 		}
 		r.Test++
