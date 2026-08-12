@@ -50,6 +50,47 @@ func declare(t *testing.T, slug, repository string, enabled bool) Declaration {
 	return got[0]
 }
 
+func TestAResolutionCarriesBothSidesOfTheSplit(t *testing.T) {
+	// decisions/plugin-identity.md takes a plugin's identity from the newest
+	// release carrying a descriptor whichever channel it is in, and
+	// decisions/channel-model.md publishes only the finished side. A resolution
+	// that dropped the test side could answer the second rule and not the first,
+	// and on a repository whose descriptors are newer than its finished releases
+	// it would report that the plugin has no identity at all.
+	d := declare(t, "both", "plugin-both", true)
+	lister := answers{releases: map[string][]Release{
+		d.Path(): {
+			{Tag: "1.4-beta.2", Prerelease: true},
+			{Tag: "v1.3"},
+			{Tag: "1.3-beta.1", Prerelease: true},
+		},
+	}}
+
+	got := Resolve(context.Background(), lister, []Declaration{d})[0]
+	if len(got.Releases) != 3 {
+		t.Fatalf("the resolution carries %d of 3 releases: %+v", len(got.Releases), got.Releases)
+	}
+	if got.Releases[0].Tag != "1.4-beta.2" {
+		t.Errorf("the releases are not in the order they were read: %+v", got.Releases)
+	}
+	if got.Finished != 1 || got.Test != 2 {
+		t.Errorf("the counts are %d finished and %d test", got.Finished, got.Test)
+	}
+
+	// The side each one is on stays the declaration's pattern applied to the
+	// tag, so a reader asks that rather than reading a second copy of the
+	// answer. The prerelease flag beside it is not the same question.
+	finished := 0
+	for _, rel := range got.Releases {
+		if got.Declaration.IsFinished(rel.Tag) {
+			finished++
+		}
+	}
+	if finished != got.Finished {
+		t.Errorf("%d releases answer the pattern and the count says %d", finished, got.Finished)
+	}
+}
+
 // TestTheThreeCasesInTheIssueAreDistinguished is the Done-when of #24: a
 // declaration file with one resolvable repository, one that does not exist and
 // one with no releases, and the run telling all three apart in its output.

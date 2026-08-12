@@ -73,13 +73,28 @@ func expectations(ctx context.Context, t *testing.T) []freshness.Expected {
 
 	var out []freshness.Expected
 	for _, r := range resolutions {
-		if !r.Declaration.On() || len(r.Releases) == 0 {
+		if !r.Declaration.On() {
+			continue
+		}
+		// The newest finished release, which is the first one on that side of
+		// the split rather than the first one in the list: a resolution carries
+		// both sides, and the newest release overall is a prerelease often
+		// enough that taking it would expect the catalogue to hold a build the
+		// catalogue does not publish.
+		newest, found := "", false
+		for _, rel := range r.Releases {
+			if r.Declaration.IsFinished(rel.Tag) {
+				newest, found = rel.Tag, true
+				break
+			}
+		}
+		if !found {
 			continue
 		}
 		out = append(out, freshness.Expected{
 			Slug: r.Declaration.Slug,
 			Path: r.Declaration.Path(),
-			Tag:  r.Releases[0].Tag,
+			Tag:  newest,
 		})
 	}
 	return out
