@@ -6,13 +6,41 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
+
+	"flowfin.dev/hub/internal/pairing"
 )
 
-// Release is the part of a release this layer reads. Everything else about a
-// release belongs to the layers that pair archives and build entries.
+// Release is one published release, in the terms the layers above this one work
+// in. Which of them is publishable is decided there and not here.
 type Release struct {
 	Tag        string
 	Prerelease bool
+
+	// Assets are the files attached to the release, as the response listed
+	// them. The type is pairing's rather than a copy of it, because the archive
+	// and the checksum that names it are selected out of exactly this list, and
+	// a second declaration of one file's name, address and size is two things to
+	// keep in step by hand.
+	//
+	// They are carried from the release list rather than requested per release
+	// later. The list already holds them, so reading them again would multiply a
+	// run's requests by the length of a history nobody here controls.
+	Assets []pairing.Asset
+
+	// Published is when the release was published.
+	//
+	// It is here because decisions/failure-posture.md splits on it: a defect in
+	// the newest release for a plugin and channel stops the run, and the same
+	// defect in an older one is a skip that names itself and lets the rest
+	// publish. So which release is newest has to be answerable before any
+	// descriptor is read, and the tag cannot answer it, because
+	// decisions/manifest-schema.md refuses the tag as a version string.
+	//
+	// A response that carries no publication time leaves this zero rather than
+	// failing the read. What a run does with a release it cannot place in time
+	// is the classification's question and is not decided here.
+	Published time.Time
 }
 
 // ErrNotFound is what a lister returns for a repository the credential cannot
