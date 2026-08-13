@@ -80,6 +80,20 @@ type Plan struct {
 	Stops    []Note
 }
 
+// built is one release that became a version entry, carried beside the tag of
+// the release it was built from.
+//
+// The tag travels because the cap drops entries after every release has been
+// read, and it owes a note for each one it dropped. A version string is not a
+// name a release answers to: decisions/manifest-schema.md fixes the version
+// field as a four-component number and a tag is whatever the plugin's author
+// wrote, so on the one repository in the declared set with a history they are
+// different strings for every release in it.
+type built struct {
+	entry manifest.Version
+	tag   string
+}
+
 // Of classifies the releases of one plugin.
 //
 // The releases given are the publishable side of the channel split, which is
@@ -93,6 +107,7 @@ func Of(plugin string, releases []sources.Release, fetch pairing.Fetch) Plan {
 	copy(ordered, releases)
 	sort.SliceStable(ordered, func(i, j int) bool { return newerFirst(ordered[i], ordered[j]) })
 
+	var entries []built
 	for i, release := range ordered {
 		// The first one is the newest for this plugin and channel, which is the
 		// release this run exists to publish. A defect in it stops the run and
@@ -115,11 +130,11 @@ func Of(plugin string, releases []sources.Release, fetch pairing.Fetch) Plan {
 		case note != nil:
 			plan.Skips = append(plan.Skips, *note)
 		default:
-			plan.Versions = append(plan.Versions, entry)
+			entries = append(entries, built{entry: entry, tag: release.Tag})
 		}
 	}
 
-	plan.Versions, plan.Skips = applyCap(plan.Plugin, plan.Versions, plan.Skips)
+	plan.Versions, plan.Skips = applyCap(plan.Plugin, entries, plan.Skips)
 	return plan
 }
 
@@ -188,24 +203,35 @@ func noteOf(plugin, release string, err error) (*Note, bool) {
 // The cap is applied here rather than left to the pass that builds the file,
 // because this is the layer that owes a sentence about every release the run
 // did not publish, and a release trimmed by the cap is one of those.
-func applyCap(plugin string, versions []manifest.Version, skips []Note) ([]manifest.Version, []Note) {
+//
+// What it dropped is worked out by counting rather than by comparing positions,
+// because CapPerTarget reorders what it keeps. Two releases that produced the
+// same entry are told apart by the count, so a set that carries a duplicate
+// names one of them rather than both or neither.
+func applyCap(plugin string, entries []built, skips []Note) ([]manifest.Version, []Note) {
+	versions := make([]manifest.Version, 0, len(entries))
+	for _, b := range entries {
+		versions = append(versions, b.entry)
+	}
 	kept := manifest.CapPerTarget(versions, manifest.Cap)
 
 	remaining := map[manifest.Version]int{}
 	for _, v := range kept {
 		remaining[v]++
 	}
-	for _, v := range versions {
-		if remaining[v] > 0 {
-			remaining[v]--
+	for _, b := range entries {
+		if remaining[b.entry] > 0 {
+			remaining[b.entry]--
 			continue
 		}
 		skips = append(skips, Note{
-			Plugin:    plugin,
-			Release:   v.Version,
+			Plugin: plugin,
+			// The tag, which is what every other note here carries and the only
+			// name the release answers to.
+			Release:   b.tag,
 			Condition: Trimmed,
 			Detail: fmt.Sprintf("target %s already carries the %d newest versions this run publishes",
-				v.TargetABI, manifest.Cap),
+				b.entry.TargetABI, manifest.Cap),
 		})
 	}
 	return kept, skips

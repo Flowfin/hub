@@ -273,6 +273,42 @@ func TestAReleaseTrimmedByTheCapIsNamedAsTrimmedRatherThanAsDefective(t *testing
 	}
 }
 
+func TestATrimmedReleaseIsNamedByItsTagLikeEveryOtherSkip(t *testing.T) {
+	// A release is addressed by its tag and by nothing else, and
+	// decisions/manifest-schema.md fixes the version field as a four-component
+	// number, so the two are different strings for every release in the declared
+	// set. A report that names one skip by its tag and the next by its version
+	// sends whoever reads it to a release page that does not exist, which is the
+	// half of #28 about the output being something somebody can act on.
+	w := world{}
+	var releases []sources.Release
+	for i := 1; i <= manifest.Cap+2; i++ {
+		releases = append(releases, published(w,
+			fmt.Sprintf("1.%d.0-stable", i), i, fmt.Sprintf("1.%d.0.0", i), "10.11.0.0"))
+	}
+
+	plan := Of("a-plugin", releases, w.fetch)
+	if len(plan.Skips) != 2 {
+		t.Fatalf("%d releases were named as trimmed: %v", len(plan.Skips), plan.Skips)
+	}
+
+	// The two oldest are the ones the cap drops whatever the cap is, so this
+	// names them rather than deriving them from manifest.Cap.
+	named := map[string]bool{}
+	for _, n := range plan.Skips {
+		named[n.Release] = true
+	}
+	report := Report([]Plan{plan})
+	for _, tag := range []string{"1.1.0-stable", "1.2.0-stable"} {
+		if !named[tag] {
+			t.Errorf("the cap dropped the release tagged %s and no note names it: %v", tag, plan.Skips)
+		}
+		if !strings.Contains(report, tag) {
+			t.Errorf("the output does not name the trimmed release %s:\n%s", tag, report)
+		}
+	}
+}
+
 func TestTheCapIsPerTargetSoASlowLineIsNotPushedOff(t *testing.T) {
 	// decisions/version-cap.md. An overall cap lets a fast-publishing target line
 	// push a slow one off the end, and from then on a server on the slower line
