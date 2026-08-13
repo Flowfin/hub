@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"flowfin.dev/hub/internal/gate"
 	"flowfin.dev/hub/internal/harness"
 )
 
@@ -185,6 +189,86 @@ func TestPublishTakesNoFurtherWords(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Fatalf("the run started before the words were checked:\n%s", out.String())
+	}
+}
+
+func TestTheUsageNamesTheReleaseVerb(t *testing.T) {
+	// The verb that refuses a release is worth nothing if the person cutting one
+	// cannot find out it exists from the entry point.
+	var out strings.Builder
+	if err := run(nil, &out); err == nil {
+		t.Fatal("the entry point with no verb exited zero")
+	}
+	if !strings.Contains(out.String(), "go run . release") {
+		t.Fatalf("usage does not name the verb that refuses a release:\n%s", out.String())
+	}
+}
+
+func TestTheReleaseVerbIsNotListedAmongTheLegs(t *testing.T) {
+	// It reaches the network, so a reader who took it for a leg would be reading
+	// it as something the merge gate runs, and requiring it on main would be the
+	// merge waiting on somebody else's service.
+	if _, found := gate.Lookup(gate.Legs(), "release"); found {
+		t.Fatal("release is a leg of the gate")
+	}
+}
+
+func TestReleaseTakesNoFurtherWords(t *testing.T) {
+	// A word after the verb would read as somebody naming what to release, and
+	// this verb releases nothing. Accepting and ignoring it would answer a
+	// question that was not asked.
+	var out strings.Builder
+	err := run([]string{"release", "1.0.0"}, &out)
+	if err == nil {
+		t.Fatal("a word after the verb was accepted")
+	}
+	if !strings.Contains(err.Error(), "1.0.0") {
+		t.Errorf("the refusal does not name what was given: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("the run started before the words were checked:\n%s", out.String())
+	}
+}
+
+func TestWhatAnAddressAnsweredWithIsWhatIsJudged(t *testing.T) {
+	// The server is this process talking to itself on a loopback port, so
+	// nothing here leaves the runner. internal/reach spares net/http/httptest
+	// for exactly this and refuses an off-runner host whichever package carries
+	// it.
+	body := []byte(`[{"guid":"a-guid","name":"A Plugin","versions":[]}]`)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write(body)
+	}))
+	defer server.Close()
+
+	got, err := fetch(context.Background(), server.URL+"/manifest.json")
+	if err != nil {
+		t.Fatalf("reading the address: %v", err)
+	}
+	if string(got) != string(body) {
+		t.Errorf("the bytes read are not the bytes served:\n%s", got)
+	}
+}
+
+func TestAnAddressThatAnswersWithAnErrorPageIsNotABody(t *testing.T) {
+	// The case this repository is in today, and the one worth the fixture. A
+	// reader that judged the error page's bytes would be judging the wrong file,
+	// and 404 is what the intended address answers with while nothing is
+	// published there.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	got, err := fetch(context.Background(), server.URL+"/manifest.json")
+	if err == nil {
+		t.Fatalf("an error page was read as a catalogue: %s", got)
+	}
+	if !strings.Contains(err.Error(), "404") {
+		t.Errorf("the refusal does not say what the address answered: %v", err)
+	}
+	if got != nil {
+		t.Errorf("bytes were returned beside the refusal: %s", got)
 	}
 }
 
