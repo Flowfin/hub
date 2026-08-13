@@ -1,0 +1,8 @@
+{
+    "account": "an-account",
+    "repository": "a-repository",
+    "slug": "one-plugin",
+    "stable_tags": "^[0-9]+\\.[0-9]+\\.[0-9]+-stable$",
+    "enabled": true,
+    "note": "A fixture vocabulary. Nothing here is read against the real declared set."
+}

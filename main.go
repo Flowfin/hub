@@ -16,15 +16,20 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
+	"flowfin.dev/hub/internal/address"
 	"flowfin.dev/hub/internal/catalogue"
 	"flowfin.dev/hub/internal/gate"
 	"flowfin.dev/hub/internal/harness"
 	"flowfin.dev/hub/internal/publish"
+	"flowfin.dev/hub/internal/readiness"
 	"flowfin.dev/hub/internal/releases"
 	"flowfin.dev/hub/internal/scan"
 	"flowfin.dev/hub/internal/sources"
@@ -53,6 +58,8 @@ func run(args []string, out io.Writer) error {
 		return runSources(out)
 	case "publish":
 		return runPublish(args[1:], out)
+	case "release":
+		return runRelease(args[1:], out)
 	case "scan":
 		return runScan(args[1:], out)
 	case "sweep":
@@ -132,6 +139,79 @@ func runPublish(args []string, out io.Writer) error {
 		Fetch: catalogue.Memo(client.Fetching(ctx)),
 	}
 	return route.Publish(ctx, out, declarations)
+}
+
+// runRelease says whether this repository is in a state a release may be cut
+// from, and exits non-zero while it is not.
+//
+// It is the step in front of the procedure in decisions/release-procedure.md
+// rather than a leg of the merge gate, and that is not a softening. Two of the
+// four conditions are questions about the world - what the published address
+// answers with, and what the release lists hold - so a leg deciding them would
+// be a merge waiting on somebody else's service, which
+// decisions/headless-and-unelevated.md refuses. The conditions themselves are
+// judged in internal/readiness against planted readings, so what this verb adds
+// is the readings and not the rules.
+//
+// What it does not do is tag, build or publish anything. A verb that refused a
+// release and then performed one on the next line would be two things, and the
+// half worth having is the one that can say no.
+func runRelease(args []string, out io.Writer) error {
+	if len(args) > 0 {
+		return fmt.Errorf("release takes no further words, and %q was given", strings.Join(args, " "))
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	declarations, err := sources.Load(os.DirFS(sources.Dir))
+	if err != nil {
+		return err
+	}
+
+	client := releases.New()
+	client.Token = os.Getenv("GITHUB_TOKEN")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	resolutions := sources.Resolve(ctx, client, declarations)
+	fmt.Fprint(out, sources.Report(resolutions))
+	fmt.Fprintln(out)
+
+	conditions := readiness.Conditions(wd, address.Answered, resolutions,
+		func(addr string) ([]byte, error) { return fetch(ctx, addr) })
+
+	readiness.Report(out, conditions)
+	return readiness.Judge(conditions)
+}
+
+// fetch reads what an address answers with, the way a Jellyfin server would.
+//
+// A status other than 200 is an error rather than a body, because a server
+// handed an error page shows an empty repository and reports nothing, and a
+// check that judged the error page's bytes would be judging the wrong file.
+func fetch(ctx context.Context, addr string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, addr, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := (&http.Client{Timeout: 60 * time.Second}).Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("it answered %s, so nothing installable is published there", resp.Status)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
+	}
+	return body, nil
 }
 
 // runSweep says which scheduled runs ended in something other than success, and
@@ -269,7 +349,7 @@ func runHarness(args []string, out io.Writer) error {
 }
 
 func usage(out io.Writer) {
-	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . publish\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
+	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . publish\n       go run . release\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
 		strings.Join(gate.Names(gate.Legs()), ", "),
 		strings.Join(harness.Names(harness.Requirements()), ", "))
 }
