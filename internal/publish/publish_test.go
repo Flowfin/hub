@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"flowfin.dev/hub/internal/publish"
 	"flowfin.dev/hub/internal/site"
@@ -61,7 +62,7 @@ func TestPlacePutsTheProducedBytesAtTheTarget(t *testing.T) {
 	root, target := served(t)
 
 	want := []byte("[]\n")
-	if err := publish.Place(root, target, write(want)); err != nil {
+	if _, err := publish.Place(root, target, write(want)); err != nil {
 		t.Fatalf("placing: %v", err)
 	}
 
@@ -100,7 +101,7 @@ func TestTheEncoderIsThePipelineThatFeedsThePlacement(t *testing.T) {
 	if err := manifest.Encode(&direct, plugins); err != nil {
 		t.Fatalf("encoding: %v", err)
 	}
-	if err := publish.Place(root, target, func(w io.Writer) error {
+	if _, err := publish.Place(root, target, func(w io.Writer) error {
 		return manifest.Encode(w, plugins)
 	}); err != nil {
 		t.Fatalf("placing: %v", err)
@@ -117,12 +118,12 @@ func TestARunThatFailsLeavesThePublishedFileByteIdentical(t *testing.T) {
 	root, target := served(t)
 
 	published := []byte("[\n    {\n        \"guid\": \"kept\"\n    }\n]\n")
-	if err := publish.Place(root, target, write(published)); err != nil {
+	if _, err := publish.Place(root, target, write(published)); err != nil {
 		t.Fatalf("publishing the first file: %v", err)
 	}
 
 	broke := fmt.Errorf("the run gave up after writing half of it")
-	err := publish.Place(root, target, func(w io.Writer) error {
+	placed, err := publish.Place(root, target, func(w io.Writer) error {
 		if _, err := w.Write([]byte("[\n    {\n        \"guid\": \"half")); err != nil {
 			return err
 		}
@@ -130,6 +131,9 @@ func TestARunThatFailsLeavesThePublishedFileByteIdentical(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("a run whose producer failed reported success")
+	}
+	if placed != publish.NotPlaced {
+		t.Errorf("a run that gave up reports %q, and a caller reading it is told a failed run left something at the address", placed)
 	}
 
 	if got := read(t, target.Path(root)); !bytes.Equal(got, published) {
@@ -147,7 +151,7 @@ func TestTwoRunsDoNotInterleave(t *testing.T) {
 	root, target := served(t)
 
 	published := []byte("[]\n")
-	if err := publish.Place(root, target, write(published)); err != nil {
+	if _, err := publish.Place(root, target, write(published)); err != nil {
 		t.Fatalf("publishing the first file: %v", err)
 	}
 
@@ -159,7 +163,7 @@ func TestTwoRunsDoNotInterleave(t *testing.T) {
 	finished := make(chan error, 1)
 
 	go func() {
-		finished <- publish.Place(root, target, func(w io.Writer) error {
+		_, err := publish.Place(root, target, func(w io.Writer) error {
 			if _, err := w.Write(slow[:len(slow)/2]); err != nil {
 				return err
 			}
@@ -168,6 +172,7 @@ func TestTwoRunsDoNotInterleave(t *testing.T) {
 			_, err := w.Write(slow[len(slow)/2:])
 			return err
 		})
+		finished <- err
 	}()
 
 	<-halfway
@@ -175,7 +180,7 @@ func TestTwoRunsDoNotInterleave(t *testing.T) {
 		t.Errorf("a run halfway through its bytes has already changed the published file to %d byte(s)", len(got))
 	}
 
-	if err := publish.Place(root, target, write(quick)); err != nil {
+	if _, err := publish.Place(root, target, write(quick)); err != nil {
 		t.Fatalf("the second run: %v", err)
 	}
 	if got := read(t, target.Path(root)); !bytes.Equal(got, quick) {
@@ -203,7 +208,7 @@ func TestTheProducerIsUnchangedWhenTheLocationMoves(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(root, target.Dir), 0o755); err != nil {
 			t.Fatalf("preparing %s: %v", target.Dir, err)
 		}
-		if err := publish.Place(root, target, produce); err != nil {
+		if _, err := publish.Place(root, target, produce); err != nil {
 			t.Fatalf("placing at %s: %v", target.Path(root), err)
 		}
 		if got := read(t, target.Path(root)); !bytes.Equal(got, []byte("[]\n")) {
@@ -225,7 +230,7 @@ func TestTheStableTargetSitsInWhatTheSitePublishes(t *testing.T) {
 
 func TestADirectoryThatIsNotThereIsRefused(t *testing.T) {
 	root := t.TempDir()
-	err := publish.Place(root, publish.Stable, write([]byte("[]\n")))
+	_, err := publish.Place(root, publish.Stable, write([]byte("[]\n")))
 	if err == nil {
 		t.Fatal("placing into a directory that does not exist reported success")
 	}
@@ -239,7 +244,7 @@ func TestAFileWhereTheDirectoryShouldBeIsRefused(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, publish.Stable.Dir), []byte("not a directory"), 0o644); err != nil {
 		t.Fatalf("preparing: %v", err)
 	}
-	if err := publish.Place(root, publish.Stable, write([]byte("[]\n"))); err == nil {
+	if _, err := publish.Place(root, publish.Stable, write([]byte("[]\n"))); err == nil {
 		t.Fatal("placing into a file reported success")
 	}
 }
@@ -250,7 +255,7 @@ func TestATargetMissingEitherHalfIsRefused(t *testing.T) {
 		{Dir: "", Name: "manifest.json"},
 		{Dir: publish.Stable.Dir, Name: ""},
 	} {
-		if err := publish.Place(root, target, write([]byte("[]\n"))); err == nil {
+		if _, err := publish.Place(root, target, write([]byte("[]\n"))); err == nil {
 			t.Errorf("the target %+v was accepted", target)
 		}
 	}
@@ -260,7 +265,7 @@ func TestATargetMissingEitherHalfIsRefused(t *testing.T) {
 // produce: a file the owner can read and a server cannot.
 func TestThePlacedFileIsReadable(t *testing.T) {
 	root, target := served(t)
-	if err := publish.Place(root, target, write([]byte("[]\n"))); err != nil {
+	if _, err := publish.Place(root, target, write([]byte("[]\n"))); err != nil {
 		t.Fatalf("placing: %v", err)
 	}
 	info, err := os.Stat(target.Path(root))
@@ -269,5 +274,133 @@ func TestThePlacedFileIsReadable(t *testing.T) {
 	}
 	if info.Mode().Perm()&0o044 == 0 {
 		t.Errorf("the placed file is %v, which nothing but its owner can read", info.Mode().Perm())
+	}
+}
+
+// TestTheFirstRunAtAnAddressWroteNewBytes is the case where there is nothing to
+// compare against. It is a change rather than an absence matching an absence,
+// because what an operator gets goes from no catalogue to a catalogue.
+func TestTheFirstRunAtAnAddressWroteNewBytes(t *testing.T) {
+	root, target := served(t)
+
+	placed, err := publish.Place(root, target, write([]byte("[]\n")))
+	if err != nil {
+		t.Fatalf("placing: %v", err)
+	}
+	if placed != publish.Changed {
+		t.Errorf("the first run at an address reports %q", placed)
+	}
+}
+
+// TestARunThatReplacesThePublishedBytesSaysSo and the test below it are the two
+// halves of #32's fourth clause, and they are only worth anything together: a
+// verdict that answers the same way for both distinguishes nothing.
+func TestARunThatReplacesThePublishedBytesSaysSo(t *testing.T) {
+	root, target := served(t)
+
+	if _, err := publish.Place(root, target, write([]byte("[]\n"))); err != nil {
+		t.Fatalf("publishing the first file: %v", err)
+	}
+
+	second := []byte("[\n    {\n        \"guid\": \"released-since\"\n    }\n]\n")
+	placed, err := publish.Place(root, target, write(second))
+	if err != nil {
+		t.Fatalf("the second run: %v", err)
+	}
+	if placed != publish.Changed {
+		t.Errorf("a run that replaced the published bytes reports %q", placed)
+	}
+	if got := read(t, target.Path(root)); !bytes.Equal(got, second) {
+		t.Errorf("the address answers with %q and the run produced %q", got, second)
+	}
+}
+
+func TestARunThatProducesWhatIsAlreadyPublishedHasNothingToWrite(t *testing.T) {
+	root, target := served(t)
+
+	same := []byte("[\n    {\n        \"guid\": \"nothing-released-since\"\n    }\n]\n")
+	if _, err := publish.Place(root, target, write(same)); err != nil {
+		t.Fatalf("publishing the first file: %v", err)
+	}
+
+	placed, err := publish.Place(root, target, write(same))
+	if err != nil {
+		t.Fatalf("the second run: %v", err)
+	}
+	if placed != publish.Unchanged {
+		t.Errorf("a run that produced the published bytes reports %q", placed)
+	}
+	if got := read(t, target.Path(root)); !bytes.Equal(got, same) {
+		t.Errorf("the address answers with %q after a run that changed nothing", got)
+	}
+	if names := entries(t, root, target); len(names) != 1 || names[0] != target.Name {
+		t.Errorf("the served directory holds %v after a run with nothing to write", names)
+	}
+}
+
+// TestARunWithNothingToWriteStillReplacesTheFile holds the decision recorded at
+// Place. Returning early on identical bytes is cheaper and leaves the file the
+// last run left, so a mode, an owner or any damage done to it since survives
+// for as long as nothing is released, and the catalogue a server is refused
+// stays refused.
+//
+// The planted time is what says which of the two happened. A file the run
+// renamed its own over carries a time from the run, and a file the run left
+// alone still carries the one planted here, whatever the clock did in between.
+func TestARunWithNothingToWriteStillReplacesTheFile(t *testing.T) {
+	root, target := served(t)
+
+	same := []byte("[]\n")
+	if _, err := publish.Place(root, target, write(same)); err != nil {
+		t.Fatalf("publishing the first file: %v", err)
+	}
+
+	planted := time.Date(2001, time.September, 9, 1, 46, 40, 0, time.UTC)
+	if err := os.Chtimes(target.Path(root), planted, planted); err != nil {
+		t.Fatalf("planting a modification time on the published file: %v", err)
+	}
+
+	placed, err := publish.Place(root, target, write(same))
+	if err != nil {
+		t.Fatalf("the second run: %v", err)
+	}
+	if placed != publish.Unchanged {
+		t.Fatalf("the second run reports %q, so this test is not measuring what it says", placed)
+	}
+
+	info, err := os.Stat(target.Path(root))
+	if err != nil {
+		t.Fatalf("reading the published file: %v", err)
+	}
+	if info.ModTime().Equal(planted) {
+		t.Error("a run with nothing to write left the file it found rather than placing its own over it")
+	}
+}
+
+// TestTheZeroVerdictSaysNothingWasPlaced pins the order the constants are
+// declared in. With Changed first, a caller that ignores the error and prints
+// the verdict is told by a run that never reached the address that it wrote a
+// new catalogue.
+func TestTheZeroVerdictSaysNothingWasPlaced(t *testing.T) {
+	var unset publish.Placement
+	if unset != publish.NotPlaced {
+		t.Errorf("the zero verdict is %q", unset)
+	}
+}
+
+// TestEachVerdictReadsAsItself is the whole clause reduced to the words. Two
+// verdicts printing one string distinguish nothing in the output, however
+// carefully the comparison behind them is taken.
+func TestEachVerdictReadsAsItself(t *testing.T) {
+	seen := map[string]publish.Placement{}
+	for _, p := range []publish.Placement{publish.NotPlaced, publish.Changed, publish.Unchanged} {
+		word := p.String()
+		if word == "" {
+			t.Errorf("a verdict prints nothing")
+		}
+		if other, ok := seen[word]; ok {
+			t.Errorf("two verdicts both print %q, and one of them is %d and the other %d", word, other, p)
+		}
+		seen[word] = p
 	}
 }
