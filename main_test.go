@@ -161,6 +161,33 @@ func TestTheUsageNamesTheSweepAndItsWord(t *testing.T) {
 	}
 }
 
+func TestTheUsageNamesThePublishVerb(t *testing.T) {
+	var out strings.Builder
+	if err := run(nil, &out); err == nil {
+		t.Fatal("the entry point with no verb exited zero")
+	}
+	if !strings.Contains(out.String(), "go run . publish") {
+		t.Fatalf("usage does not name the verb that places the catalogue:\n%s", out.String())
+	}
+}
+
+func TestPublishTakesNoFurtherWords(t *testing.T) {
+	// A word after the verb would be somebody saying where to place the file,
+	// and the location is publish.Stable rather than an argument. Refusing is
+	// the only answer that does not silently place it somewhere else.
+	var out strings.Builder
+	err := run([]string{"publish", "docs/manifest.json"}, &out)
+	if err == nil {
+		t.Fatal("a word after the verb was accepted")
+	}
+	if !strings.Contains(err.Error(), "docs/manifest.json") {
+		t.Errorf("the refusal does not name what was given: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("the run started before the words were checked:\n%s", out.String())
+	}
+}
+
 func TestTheHarnessReportRunsNothing(t *testing.T) {
 	// `go run . harness` with no requirement says what the harness holds. If it
 	// ran anything it would be reaching the network from a command somebody
