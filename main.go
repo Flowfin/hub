@@ -21,8 +21,10 @@ import (
 	"os"
 	"strings"
 
+	"flowfin.dev/hub/internal/catalogue"
 	"flowfin.dev/hub/internal/gate"
 	"flowfin.dev/hub/internal/harness"
+	"flowfin.dev/hub/internal/publish"
 	"flowfin.dev/hub/internal/releases"
 	"flowfin.dev/hub/internal/scan"
 	"flowfin.dev/hub/internal/sources"
@@ -49,6 +51,8 @@ func run(args []string, out io.Writer) error {
 		return runHarness(args[1:], out)
 	case "sources":
 		return runSources(out)
+	case "publish":
+		return runPublish(args[1:], out)
 	case "scan":
 		return runScan(args[1:], out)
 	case "sweep":
@@ -81,6 +85,53 @@ func runSources(out io.Writer) error {
 	resolutions := sources.Resolve(context.Background(), client, declarations)
 	fmt.Fprint(out, sources.Report(resolutions))
 	return sources.Judge(resolutions)
+}
+
+// runPublish generates the catalogue and places it at the address an operator
+// pasted into a server.
+//
+// It reaches the network, so it is a verb somebody or a schedule runs rather
+// than a leg of the gate, for the reason runSources gives above. What it adds
+// beside that verb is the rest of the route: internal/catalogue is the order the
+// parts run in, and every refusal in it is judged against a fixture there.
+//
+// The location is publish.Stable and is named here rather than configured
+// anywhere else. Moving what the address is served from is an edit to that one
+// value, which is the separation #31 asks for: the address is permanent and the
+// storage behind it is not.
+func runPublish(args []string, out io.Writer) error {
+	if len(args) > 0 {
+		return fmt.Errorf("publish takes no further words, and %q was given", strings.Join(args, " "))
+	}
+
+	declarations, err := sources.Load(os.DirFS(sources.Dir))
+	if err != nil {
+		return err
+	}
+
+	// The root is the working directory rather than a flag, so a run publishes
+	// into the checkout it was started from and cannot be pointed at a served
+	// directory belonging to something else by a typo.
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	client := releases.New()
+	client.Token = os.Getenv("GITHUB_TOKEN")
+
+	ctx := context.Background()
+	route := catalogue.Route{
+		Root:   wd,
+		Target: publish.Stable,
+		Lister: client,
+		// Memo, because the descriptor of a release is read once to build its
+		// version entry and again to choose which release names the plugin, and
+		// the rate limit those two spend is shared with everything else using
+		// the token.
+		Fetch: catalogue.Memo(client.Fetching(ctx)),
+	}
+	return route.Publish(ctx, out, declarations)
 }
 
 // runSweep says which scheduled runs ended in something other than success, and
@@ -218,7 +269,7 @@ func runHarness(args []string, out io.Writer) error {
 }
 
 func usage(out io.Writer) {
-	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
+	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . publish\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
 		strings.Join(gate.Names(gate.Legs()), ", "),
 		strings.Join(harness.Names(harness.Requirements()), ", "))
 }
