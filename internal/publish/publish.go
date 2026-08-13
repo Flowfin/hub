@@ -43,6 +43,8 @@
 package publish
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -89,6 +91,75 @@ var Stable = Target{Dir: site.Dir, Name: "manifest.json"}
 // bit is set explicitly rather than left to the umask for that reason.
 const mode = 0o644
 
+// Placement is what a run did to the catalogue an operator reads.
+//
+// A run that regenerated exactly the bytes already published and a run that
+// replaced them are the same syscalls and the same nil error, and #32 asks for
+// them to be different words in the output. The distinction cannot be taken
+// after the fact from the file's size or its modification time, because both
+// move when identical bytes are rewritten, so it is taken here, where the old
+// bytes and the new ones are both in reach.
+//
+// What it is not is a statement about which of two overlapping runs the address
+// ends up holding. This verdict is about the bytes the address answered with
+// when this run read it, and a run whose neighbour renamed over it in between
+// reports against what it saw. Serialising the two is #32's concurrency group.
+type Placement int
+
+const (
+	// NotPlaced is what a run that returned an error carries.
+	//
+	// It is first so that it is the zero value. A caller that ignores the error
+	// and prints the placement is then told nothing was placed, rather than
+	// being told by a failed run that the catalogue changed.
+	NotPlaced Placement = iota
+
+	// Changed is a run whose bytes differ from what the address answered with,
+	// including the first run at an address nothing was published at.
+	Changed
+
+	// Unchanged is a run that produced exactly the bytes already published.
+	//
+	// It is a success and not a failure. A catalogue that nothing has released
+	// into since the last run has nothing to write, and the schedule in #32
+	// reaches this on most of its runs.
+	Unchanged
+)
+
+func (p Placement) String() string {
+	switch p {
+	case Changed:
+		return "wrote new bytes"
+	case Unchanged:
+		return "nothing to write"
+	}
+	return "not placed"
+}
+
+// digestOf is what the address answers with today, or nil where it answers with
+// nothing.
+//
+// A file that is there and cannot be read is an error rather than nil. Guessing
+// in that direction would report a run as having changed the catalogue on the
+// strength of a read that did not happen, which is the shape of claim this
+// repository refuses everywhere else.
+func digestOf(name string) ([]byte, error) {
+	f, err := os.Open(name)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return nil, err
+	}
+	return h.Sum(nil), nil
+}
+
 // Place writes what produce emits to the target, atomically from a reader's
 // point of view.
 //
@@ -99,18 +170,32 @@ const mode = 0o644
 // The directory has to exist already. Creating it would turn a target pointed at
 // the wrong place into a new empty directory nobody serves, and the run would
 // report success while every server kept reading the old address.
-func Place(root string, t Target, produce func(io.Writer) error) (err error) {
+//
+// A run that produced the bytes already published still renames over them, and
+// the verdict it returns is the only thing that differs. Skipping the rename
+// there would be cheaper and would leave a file whose mode, owner and any
+// damage done to it since the last run all survive, so a catalogue served as a
+// refusal would keep being served as one for as long as nothing released.
+func Place(root string, t Target, produce func(io.Writer) error) (placed Placement, err error) {
 	if t.Dir == "" || t.Name == "" {
-		return fmt.Errorf("a target needs a directory and a file name, and it has %q and %q", t.Dir, t.Name)
+		return NotPlaced, fmt.Errorf("a target needs a directory and a file name, and it has %q and %q", t.Dir, t.Name)
 	}
 
 	dir := filepath.Join(root, filepath.FromSlash(t.Dir))
 	info, err := os.Stat(dir)
 	if err != nil {
-		return fmt.Errorf("the directory %s is published from and it could not be read: %w", t.Dir, err)
+		return NotPlaced, fmt.Errorf("the directory %s is published from and it could not be read: %w", t.Dir, err)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("%s is where %s is published and it is not a directory", t.Dir, t.Name)
+		return NotPlaced, fmt.Errorf("%s is where %s is published and it is not a directory", t.Dir, t.Name)
+	}
+
+	// Read before anything is produced, because after the rename the bytes this
+	// is compared against are this run's own and every run reports itself
+	// unchanged.
+	before, err := digestOf(t.Path(root))
+	if err != nil {
+		return NotPlaced, fmt.Errorf("reading what %s answers with today: %w", t.Name, err)
 	}
 
 	// The temporary file is beside the target rather than in the system's
@@ -120,37 +205,49 @@ func Place(root string, t Target, produce func(io.Writer) error) (err error) {
 	// creating it and removing it.
 	tmp, err := os.CreateTemp(dir, "."+t.Name+".*")
 	if err != nil {
-		return fmt.Errorf("opening a temporary file beside %s: %w", t.Name, err)
+		return NotPlaced, fmt.Errorf("opening a temporary file beside %s: %w", t.Name, err)
 	}
 	tmpName := tmp.Name()
 
 	// Both are cleanups rather than the path a good run takes: after a
 	// successful rename there is no file at tmpName and nothing left open.
+	// A cleanup that fails takes the verdict down with the error, so no caller
+	// is told what a run placed by a call that also returned a failure.
 	defer func() {
 		tmp.Close()
 		if removeErr := os.Remove(tmpName); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) && err == nil {
-			err = fmt.Errorf("removing the temporary file %s: %w", filepath.Base(tmpName), removeErr)
+			placed, err = NotPlaced, fmt.Errorf("removing the temporary file %s: %w", filepath.Base(tmpName), removeErr)
 		}
 	}()
 
-	if err := produce(tmp); err != nil {
-		return fmt.Errorf("producing the bytes for %s: %w", t.Name, err)
+	// The digest is taken off the bytes on their way to the file rather than by
+	// reading the file back, so what is compared is what produce emitted.
+	after := sha256.New()
+	if err := produce(io.MultiWriter(tmp, after)); err != nil {
+		return NotPlaced, fmt.Errorf("producing the bytes for %s: %w", t.Name, err)
 	}
 	if err := tmp.Chmod(mode); err != nil {
-		return fmt.Errorf("setting the mode of %s: %w", t.Name, err)
+		return NotPlaced, fmt.Errorf("setting the mode of %s: %w", t.Name, err)
 	}
 	// Ordered before the rename rather than left to the close. A rename that
 	// publishes a name whose bytes are still in flight is the truncated-file
 	// case with the failure moved somewhere nobody is watching.
 	if err := tmp.Sync(); err != nil {
-		return fmt.Errorf("flushing %s before publishing it: %w", t.Name, err)
+		return NotPlaced, fmt.Errorf("flushing %s before publishing it: %w", t.Name, err)
 	}
 	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("closing %s before publishing it: %w", t.Name, err)
+		return NotPlaced, fmt.Errorf("closing %s before publishing it: %w", t.Name, err)
 	}
 
 	if err := os.Rename(tmpName, t.Path(root)); err != nil {
-		return fmt.Errorf("placing %s: %w", t.Name, err)
+		return NotPlaced, fmt.Errorf("placing %s: %w", t.Name, err)
 	}
-	return nil
+
+	// An address that answered with nothing has a nil digest here, and the sum
+	// of the produced bytes is never nil, so the first run at an address is a
+	// change rather than a comparison of two absences.
+	if bytes.Equal(before, after.Sum(nil)) {
+		return Unchanged, nil
+	}
+	return Changed, nil
 }
