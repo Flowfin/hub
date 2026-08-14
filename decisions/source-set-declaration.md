@@ -103,8 +103,8 @@ first release is proving.
 
 ## What refuses a violation
 
-Nothing yet. This file states where the set comes from; #24 is the loader that
-reads it and refuses a declaration whose repository or release it cannot resolve,
+Nothing yet. The declaration below is where the set comes from; #24 is the loader
+that reads it and refuses a declaration whose repository or release it cannot resolve,
 and #30 is the check that refuses either name being written into the source
 instead. Until those land, the rule holds because nothing has broken it, which is
 a different sentence from the rule being enforced.

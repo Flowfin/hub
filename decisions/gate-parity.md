@@ -1,7 +1,7 @@
 # Which legs of the plugin board's gate this board carries
 
 The gate on `iderex/jellyfin-plugin-sso` is the target this board is measured
-against. It is public, so it is read rather than described:
+against. It is public, so the list below is read out of the API:
 
     gh api repos/iderex/jellyfin-plugin-sso/rules/branches/main \
       --jq '.[] | select(.type=="required_status_checks")
@@ -20,8 +20,8 @@ against. It is public, so it is read rather than described:
     prettier
     dependency-review
 
-Run 2026-08-09. Thirteen names, and they are read at the time of writing rather
-than copied from where this question was raised, because a required set moves.
+Run 2026-08-09. Thirteen names, read at the time of writing, because a required
+set moves and a copy taken where the question was raised would already be stale.
 
 Parity does not mean copying. That board is a compiled plugin with a test
 project, a fuzz harness and a packaging step, and several of its legs have
@@ -56,17 +56,16 @@ Both run 2026-08-09. Ten required names against the target's thirteen.
 Some of this board's own legs are missing from that list, and the set grows
 every time one lands, because nothing adds a name to a ruleset on its own. A leg
 in that state runs on every pull request and blocks nothing. How many there are
-today is derived rather than written here, since the number moves whenever
-either side does:
+today is derived by the command below, since the number moves whenever either
+side does:
 
     comm -23 <(grep -o 'Gate: [a-z0-9-]*' .github/workflows/gate.yml | sort -u) \
              <(gh api repos/Flowfin/hub/rules/branches/main \
                 --jq '.[] | select(.type=="required_status_checks")
                       | .parameters.required_status_checks[].context' | sort)
 
-The left side is the workflow's job names rather than the leg list, and the two
-cannot disagree: `internal/gate`'s suite refuses a leg with no job and a job
-with no leg.
+The left side is the workflow's job names, and it cannot disagree with the leg
+list: `internal/gate`'s suite refuses a leg with no job and a job with no leg.
 
 Widening the required set is #48 and is not done here; recording that the gap
 exists is.
@@ -90,8 +89,8 @@ tool over the built plugin to produce the archive an operator installs. This
 board produces no archive: it publishes a file that points at archives other
 repositories built.
 
-**Package (JPRM) / Generate SBOM.** DROPPED, and it is the one drop worth
-arguing rather than stating. An SBOM lists what a build depends on, and this
+**Package (JPRM) / Generate SBOM.** DROPPED, and it is the one drop that owes an
+argument. An SBOM lists what a build depends on, and this
 tree's dependency set is empty and is held empty by the absence of a `go.sum`
 that `CONTRIBUTING.md` spends a section on. An SBOM of nothing is a file nobody
 reads. The condition that reverses this is the first `require` line in `go.mod`,
@@ -106,8 +105,8 @@ What carries over unchanged is that a finding blocks rather than annotates, and
 that half is not free. The analyse step uploads its results and exits zero
 whether it found anything or not, so a job that stopped there would be green with
 findings in it. `go run . scan` reads the report the analysis wrote and exits
-non-zero on any result. It is a Go verb over a directory rather than an
-expression in the workflow, which is what `decisions/means.md` asks for, and
+non-zero on any result. It is a Go verb over a directory, which is what
+`decisions/means.md` asks for, so no logic sits in the workflow file, and
 `internal/scan` carries a fixture for each of its refusals.
 
 Three of those four refusals are the analysis having NOT happened rather than the
@@ -128,7 +127,7 @@ same certificate, same refusal of a non-merge commit without the line.
 **Deterministic PR-hygiene checks.** ADAPTED, landed as `Gate: pr-hygiene` in
 `internal/hygiene`. What carries over is the tiering, so high-confidence rules
 block and soft conventions annotate, and the explicit skip for an author from
-outside the repository that announces itself rather than going quiet. What is
+outside the repository, which announces itself on every run it applies to. What is
 dropped from it is every rule about a solution file, a changelog format or a
 test project, none of which exist here.
 
@@ -157,8 +156,8 @@ names. The target runs a pattern linter over its source; this board's equivalent
 is `Gate: no-hardcoded-names`, which refuses an account or organisation name
 written into source or into a workflow step, and `Gate:
 site-fetches-nothing-outside`, which refuses a served page that would load from
-another host. Both are Go tests over the tree rather than a pattern language,
-which is what `decisions/means.md` asks for: a rule that can be run against a
+another host. Both are Go tests over the tree, which is what
+`decisions/means.md` asks for: a rule that can be run against a
 planted input rather than one that can only be shown to bite by breaking the tree.
 
 **Reject Trojan Source Unicode.** ADOPTED, unchanged, and already required.
@@ -180,8 +179,7 @@ exists to notice changing.
 
 Neither is a required name on the target's list above, and both are legs it runs.
 They are recorded here because a parity list that quietly drops what was too much
-trouble is the failure this document exists against, and #46 is where that was
-raised.
+trouble is the failure #46 raised.
 
 **Coverage. ADOPTED, with a floor, as `Gate: coverage`.** It costs no dependency:
 `decisions/means.md` fixes the toolchain as Go, coverage instrumentation arrives
@@ -222,7 +220,7 @@ one in `CONTRIBUTING.md`: a guard ships with a planted input it refuses.
 
 **Mutation. DROPPED.** The Go toolchain carries no mutation runner, so adopting
 it means adding the first third-party tool to a tree whose empty dependency set
-is a stated property rather than an accident: there is no `go.sum`, the toolchain
+is a stated property: there is no `go.sum`, the toolchain
 refuses an unrequired import at build time, and `dependency-review` exists to
 notice that changing. `decisions/means.md` asks for that cost to be paid
 knowingly, and the thing bought does not pay it here.
@@ -232,10 +230,10 @@ the generator's value is in its refusals, and a test that calls a refusing
 function and asserts it returned is green whether the refusal fired or not. This
 board answers that question per guard instead of per run. Every pull request
 adding a guard shows it refusing a planted input, and the fixtures live in the
-tree afterwards, so the answer is in the suite rather than in a nightly report
-nobody opens.
+tree afterwards, so the answer lives in the suite, next to the guard it is about,
+where a nightly report nobody opens would have held it.
 
-The bound on that is real and is stated rather than hidden: a planted fixture
+The bound on that is real and is stated here: a planted fixture
 proves the guard bites for the case somebody thought of, and a mutation run looks
 for the case nobody did. Nothing here replaces that.
 
@@ -271,5 +269,5 @@ gate's own report says on every run that none of them ran.
 Which of these becomes a required name on `main` is #48. This document says what
 each leg is; a ruleset is what makes one block, and nothing in this tree can read
 a ruleset. The list above was derived by running the commands at the top on
-2026-08-09, and it is derived again rather than trusted the next time somebody
-needs it.
+2026-08-09. Run them again the next time somebody needs the list; what they
+print then is the answer.

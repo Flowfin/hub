@@ -126,7 +126,7 @@ is not comparable between two clients and this rule cannot be applied fairly.
 A number may be changed, and it may not be waived. Changing it is a change to this
 system, argued in the open, applying to every client from then on. Waiving it for
 one release is how a budget becomes a preference, and it is the specific failure
-this file exists to prevent. If 80 ms turns out to be the wrong number, the repair
+the rule above prevents. If 80 ms turns out to be the wrong number, the repair
 is to move it and say why, for everybody.
 
 A client that has not been measured has not met the budget. Not measured and met

@@ -76,7 +76,7 @@
   "focus": {
     "what": "The one place in the interface with colour in it. Every value below marks what has focus and nothing else.",
     "combinations": "A brightness scheme and a colour-vision preset combine, and the combination is what an eye actually sees, so the accent is stated per preset per scheme rather than as two lists a reader multiplies. Five presets times two schemes is ten accents.",
-    "note": "The table on the published page prints one colour per preset, and it is the dark one. A client reading that table alone gets the light scheme wrong for every preset. That disagreement is why this file exists and why it is the authority rather than the page.",
+    "note": "The table on the published page prints one colour per preset, and it is the dark one. A client reading that table alone gets the light scheme wrong for every preset. The values here are the authority for both schemes, and the page prints a summary of them.",
     "ring-width-applies-to": "Both schemes. A preset raises the ring for every brightness or for neither.",
     "accent": {
       "role": "The mark itself: the ring drawn around what has focus, and any glyph that carries the same signal.",

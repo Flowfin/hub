@@ -73,7 +73,7 @@ noise at one.
 ## What blocks it
 
 These are the open issues the sequence above cannot happen without. The list is
-a judgement rather than a derivation, and the current state of each one is:
+a judgement, and the current state of each one is:
 
     for n in 1 5 7 11 17 18 19 24 25 26 27 28 31 32 33 34 35 51 53 54 55; do
       gh issue view "$n" --repo Flowfin/hub --json number,state,title \

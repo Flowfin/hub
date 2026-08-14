@@ -11,21 +11,20 @@ usable and on whether the cache was warm. Playback start depends on whether the
 server is transcoding, which is not a property of the client at all.
 
 So each number below carries what starts the clock, what stops it, the device and
-the network, how many runs, and which statistic is reported. The percentile
-rather than the mean, because the complaint a person has is about the worst thing
-they noticed and not the average they did not.
+the network, how many runs, and which statistic is reported. The percentile,
+because the complaint a person has is about the worst thing they noticed.
 
 Where a number cannot be measured on a clean runner it says so and names the
 harness requirement it needs. `decisions/headless-and-unelevated.md` is why that
-is a name rather than a skipped job, and `internal/harness` is where the names
-are. A budget that quietly stopped being checked is worse than one that says
-which parts are not.
+requirement carries a name, and `internal/harness` is where the names are. A
+budget that quietly stopped being checked is worse than one that says which
+parts are not.
 
 ## Focus change, under 80 ms
 
 **Starts** at the key event as the device reports it: the down edge, not the up
-edge, and taken from the platform's own input timestamp rather than from when the
-application loop noticed it. **Stops** at the first frame presented in which any
+edge, and taken from the platform's own input timestamp, which is stamped before
+the application loop notices it. **Stops** at the first frame presented in which any
 pixel of the newly focused element differs from the frame before it. Presented,
 not painted, and not the callback: what the person waits for is the screen.
 
@@ -41,14 +40,14 @@ because one 300 ms move is a thing a person sees and a mean hides.
 **Where it runs.** `needs-browser` for a web client and hardware for a native
 one. Not measurable on a clean runner: the number is about frames presented on a
 display and there is no display in the gate. The frame-timing part of it is
-measurable in a headless browser with a compositor and that is an approximation
-of this number rather than this number.
+measurable in a headless browser with a compositor, and what that yields is an
+approximation, recorded under that word.
 
 ## Dropped frames, none at 60 fps
 
 **Starts** when a scroll of 200 tiles begins, driven by a synthetic input at a
-fixed velocity rather than by a hand, so two runs are comparable. **Stops** when
-the scroll ends and the content is at rest.
+fixed velocity, so two runs are comparable; a hand repeats nothing closely
+enough to compare. **Stops** when the scroll ends and the content is at rest.
 
 A dropped frame is a presented frame whose interval from the previous presented
 frame exceeds 1.5 times the display's frame period. That threshold is stated
@@ -57,9 +56,9 @@ missed, and a rule reading "over 16.7 ms" counts scheduling noise as a drop and
 reports a number nobody can hit.
 
 **Device and network.** The slowest supported device, artwork already in the
-local cache. Fetching artwork mid-scroll is a real failure and it is the first
-number's neighbour rather than this one: this measures whether the client can
-present what it already has.
+local cache. Fetching artwork mid-scroll is a real failure and it belongs beside
+the first number: this one measures whether the client can present what it
+already has.
 
 **Runs and statistic.** 10 scrolls, and the reported number is the total count of
 dropped frames across all 10, not an average. The budget is zero, so an average
@@ -82,7 +81,8 @@ the application's own first line and is the point the person's wait starts at.
 
 **Cold** is stated because it is where the number is usually lost: no warm
 process, no warm page cache, no pre-rendered view, and the artwork cache emptied.
-The device is rebooted before each run rather than the application restarted.
+The device is rebooted before each run; restarting the application leaves too
+much of the machine warm.
 
 **Device and network.** Slowest supported device. A local network with the server
 on the same subnet, because a cold start makes requests and the number is about
@@ -117,9 +117,8 @@ this on a fast network is measuring the wrong case.
 percentile.
 
 **Where it runs.** `needs-browser` for a web client, hardware for a native one.
-The static half of it is a gate check rather than a harness one, because a tile
-whose height is not fixed in the stylesheet is visible in the source; the
-dynamic half is not.
+The static half of it is a gate check, because a tile whose height is not fixed
+in the stylesheet is visible in the source; the dynamic half needs the harness.
 
 ## Playback start, under 2 s
 

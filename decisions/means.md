@@ -41,7 +41,7 @@ of the workflows this repository already carries are that shape:
 
 Run 2026-08-08 at 6a98de6. Both are worth keeping, because they are cheap and
 because rewriting somebody's working scanner is not free. What they are not is a
-pattern to extend once the checks start encoding decisions rather than scanning
+pattern to extend once the checks start encoding decisions instead of scanning
 for characters.
 
 ## What it adds that the tree does not already carry

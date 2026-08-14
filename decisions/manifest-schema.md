@@ -151,13 +151,12 @@ the failure #23 is about and is not left to a checkout setting.
 **Keys are emitted in the order above, not sorted.** Sorted keys would put
 `category` before `changelog` and scatter a version entry's identity through it.
 The order above is fixed by the order of the fields in the types the generator
-marshals, so it is a property of the source rather than a formatting pass, and
-changing it is a change to a struct that a reader sees.
+marshals, so it is a property of the source, and changing it is a change to a
+struct that a reader sees.
 
 **Strings carry their own characters.** An ampersand is `&` and not `\u0026`, an
 angle bracket is `<` and not `\u003c`, and a non-ASCII character is emitted as
-UTF-8 rather than as an escape. The published catalogue does the same, which is
-worth stating as bytes rather than as an intention:
+UTF-8. The published catalogue does the same, and the bytes say so:
 
     python -c "
     raw=open('jf-manifest.json','rb').read()
@@ -213,13 +212,13 @@ above as bytes. It carries two plugins so the plugin ordering is visible, one wi
 on one plugin with five entries on one and two on the other so the per-target cap
 is visible as a shape, and a changelog containing an ampersand, angle brackets, a
 quotation mark, a backslash and a non-ASCII letter so the escaping is fixed by an
-example rather than by a sentence.
+example a reader can run.
 
 It is a fixture and its contents are fixture contents. The names, guids, URLs and
 digests in it are invented, the host is the documentation domain reserved for
 exactly this, and nothing in it is a claim about any real release. A fixture built
 out of the real catalogue would prove the state of the world on the day it was
-built rather than the format.
+built, and the format is what needs proving.
 
 The test that compares generator output against it byte for byte is #29. This file
 and the fixture land together because a format decision written without an example
