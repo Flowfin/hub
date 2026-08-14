@@ -48,7 +48,7 @@ catalogue uses and those six are in both of them.
 
 Optional: `imageUrl`. Absent in eleven of the thirty-four entries measured there,
 so a plugin with no artwork is ordinary rather than defective, and the key is
-omitted rather than emitted empty.
+left out where there is no value for it.
 
 `guid` is also checked for shape, because it is the one field whose damage is
 invisible. It must be eight, four, four, four and twelve hexadecimal characters
@@ -59,8 +59,8 @@ the entry as a plugin it has never seen.
 `owner` is read from the descriptor like the rest. Entry 4 of #1 decided that the
 catalogue carries the account that publishes the releases, and the reason given
 there was that the field should show the same name as the release it came from.
-Reading it out of the release is that decision implemented rather than a second
-place the name is decided. Writing the answer into this generator instead would
+Reading it out of the release is that decision implemented, and it opens no
+second place where the name is decided. Writing the answer into this generator would
 be refused by `no-hardcoded-names`, which is `decisions/names-are-data.md`.
 
 ## Why the sidecar rather than the build descriptor
@@ -105,7 +105,7 @@ for, and a reader has to know which of them to ignore.
 
 The cost is stated: a release that ships a `build.yaml` and no sidecar carries
 identity this generator will not read, and is refused rather than parsed by the
-other route. That is one file format rather than two, and two readers of one fact
+other route. That holds the tree to one file format, and two readers of one fact
 disagree the first time one of them is corrected.
 
 ## What this costs, and the cost is live today
@@ -160,8 +160,7 @@ ENFORCEMENT` for that half.
 ## What this does not settle
 
 Where `version`, `targetAbi`, `changelog` and `timestamp` are read from. They sit
-in the same file and they are the version entry rather than the identity, and
-nothing here reads them.
+in the same file, they belong to the version entry, and nothing here reads them.
 
 What the run does with a refused plugin. That is
 `decisions/failure-posture.md`, which already places a defect in the newest

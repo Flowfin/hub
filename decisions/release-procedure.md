@@ -29,7 +29,7 @@ of a run reads one run's whole output or the previous one's and never a mixture.
 Landed. The placed file is a tracked file, so it reaches the address the way
 every other change does: a branch, a pull request, the gate, a merge. There is
 no route from a generator run to the served directory that skips the merge, and
-that is deliberate rather than missing.
+that gap is deliberate, and it is recorded here so it reads that way.
 
 Served. The site is served from the `docs` directory of the default branch by a
 host this repository does not run and cannot make deploy. A merge is not a
@@ -103,8 +103,8 @@ them holds. The conditions are `internal/readiness`'s and every one of them is
 tripped in that package's own suite against a planted reading, so a condition
 that has never refused anything is not among them.
 
-Two answers rather than one when a condition does not clear, and they are not
-the same sentence. A condition that HOLDS is a fact about this tree, and the
+A condition that does not clear has two answers, and they are not the same
+sentence. A condition that HOLDS is a fact about this tree, and the
 repair is to change the tree. A condition NOT EVALUATED is a fact about this
 run: the address nobody has recorded, the read that failed, the release lists
 that could not be fetched. Both refuse. An unread condition is never a clear

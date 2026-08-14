@@ -20,7 +20,7 @@ it, in the shortest form a claim can take. A report carries the values, the
 measurements, the method each one was produced with and the hardware it ran on,
 so a reader who doubts it can run it again and find out.
 
-The report lives in the client's repository rather than here. It describes one
+The report lives in the client's repository. It describes one
 build of one client at one moment, so a copy kept in this tree is stale the next
 time that client releases, and a stale copy of somebody else's evidence is worse
 than no copy. This repository holds the system. Each client holds its own
@@ -79,8 +79,7 @@ A missed budget number is already answered, in
 may be changed in the open for everybody but not waived for one release. Nothing
 here reopens that.
 
-Two things it does not answer, which belong to the report rather than to the
-budget.
+Two things it does not answer. Both belong to the report.
 
 A value that does not match blocks nothing on its own. A corner radius two pixels
 off harms no one, and a client that cannot publish until every value matches is a
@@ -112,8 +111,8 @@ files can.
 Every check this repository owns reads this repository. A client's report lives
 in a tree this repository does not hold and does not gate, so no leg of this
 gate can refuse a badge, a missing entry or a summary verdict that collapses the
-three states. What is available is narrower and worth naming rather than
-implying: this repository can hold its own published pages to the wording in the
+three states. What is available is narrower, and it is named here so nobody has
+to infer it: this repository can hold its own published pages to the wording in the
 section above, and it can publish the values and the method in forms a client's
 own gate can read, which is #39 and #41.
 
