@@ -64,3 +64,19 @@ GitHub receives each request for them; whatever it keeps is GitHub's under its
 own terms, and this project neither reads it nor adds a record of its own beside
 it. What a server sending one of those requests discloses, and what it does not,
 is in the readme under `## What a server sends when it uses this catalogue`.
+
+The plugins the catalogue lists are separate projects, and what each one does
+with data is its own to describe. Listing one is not a statement about its
+behaviour, so a question about what a plugin sends is that plugin's to answer
+rather than this catalogue's. That is a different boundary from the one under
+`## What is out of scope` above, which decides where a report goes rather than
+who answers for a behaviour.
+
+Personal data stays on the operator's own host unless the operator configures a
+plugin to send it somewhere, which is something set up deliberately and never a
+default. What that looks like, so that a reader can tell whether they have done
+it: another server's address entered in a setting, an invitation issued to
+somebody outside the household, a synchronisation target pointed at a machine
+that is not yours. If none of that has been configured, nothing has left the
+host, and whether a particular plugin offers any of it is that plugin's own
+documentation.
