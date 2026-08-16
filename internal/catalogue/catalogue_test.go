@@ -240,6 +240,68 @@ func TestNothingIsPlacedForADeclarationThatDoesNotResolve(t *testing.T) {
 	}
 }
 
+// TestARunThatResolvesZeroPluginsPublishesNothingAndSaysWhyForEach is the third
+// clause of the Done-when of #28, at the layer where the whole run can be
+// watched rather than one of its parts.
+//
+// decisions/failure-posture.md asks three things of a run that resolved zero
+// plugins: it exits non-zero, it publishes nothing, and it says why each
+// declared plugin contributed nothing. internal/sources holds the first and the
+// third against its own fixtures, and the second one cannot be asked there,
+// because that layer never writes a file. It is the assertion a suite loses:
+// a run that refuses after it has already renamed its bytes over the published
+// file has failed the posture and passes a test that reads only the exit code,
+// and what an operator's server then fetches is an empty catalogue with no
+// error anywhere.
+//
+// Neither declaration here is in a fatal state. A repository that answers
+// not-found is refused one branch earlier and is already held by
+// TestNothingIsPlacedForADeclarationThatDoesNotResolve; these two answer
+// perfectly well and have nothing to publish, which is the state the run has to
+// tell from a correct run over a catalogue that shrank to nothing.
+func TestARunThatResolvesZeroPluginsPublishesNothingAndSaysWhyForEach(t *testing.T) {
+	w := world{}
+	l := listing{
+		// Published nothing at all.
+		"an-account/jellyfin-plugin-a-plugin": {},
+		// Publishes, but nothing on the side of the split that is served.
+		"an-account/jellyfin-plugin-another-plugin": []sources.Release{
+			published(w, "another-plugin", "1.0.0-beta.1", 10, "1.0.0.1", "Another Plugin"),
+		},
+	}
+	route, _ := routeInto(t, l, w)
+
+	before := []byte("[\n    {\"guid\": \"the file the address answers with today\"}\n]\n")
+	if err := os.WriteFile(route.Target.Path(route.Root), before, 0o644); err != nil {
+		t.Fatalf("planting the previously published file: %v", err)
+	}
+
+	var out strings.Builder
+	err := route.Publish(context.Background(), &out, declaring(t, "a-plugin", "another-plugin"))
+	if err == nil {
+		t.Fatalf("a run that resolved zero plugins exited zero:\n%s", out.String())
+	}
+	if !strings.Contains(err.Error(), "empty catalogue is a decision") {
+		t.Errorf("the refusal does not say what an empty catalogue would have to be: %v", err)
+	}
+
+	if got := placedBytes(t, route); string(got) != string(before) {
+		t.Fatalf("a run that resolved zero plugins wrote to the published file:\n%s", got)
+	}
+
+	// One reason per declaration, in the words that layer chose, so that a
+	// catalogue which lost every plugin at once is read as two separate answers
+	// rather than as one outage.
+	for _, phrase := range []string{
+		"a-plugin", "has published nothing",
+		"another-plugin", "none matching stable_tags",
+	} {
+		if !strings.Contains(out.String(), phrase) {
+			t.Errorf("the run output does not carry %q:\n%s", phrase, out.String())
+		}
+	}
+}
+
 // TestAnUnusableHistoricalReleaseIsNamedAndTheRestIsPublished is the first
 // clause of the Done-when of #28, which is what that issue is waiting on this
 // route for: the classification is judged in internal/posture, and this is the
