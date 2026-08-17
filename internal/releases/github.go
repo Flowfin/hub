@@ -10,6 +10,7 @@ package releases
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -132,6 +133,40 @@ func (c *Client) ListReleases(ctx context.Context, account, repository string) (
 	}
 
 	return out, landedOn, nil
+}
+
+// LatestRelease names the newest release the repository has published, or
+// returns sources.ErrNoRelease where it has published none.
+//
+// It is a second route to a fact the list already answers, and it is here
+// because the list is the one answer that cannot be checked against itself: a
+// listing route that returns a success with no rows for a repository with
+// releases is read as a repository that has published nothing. This endpoint
+// answers with one release rather than a page of them, so it does not share
+// that answer.
+//
+// The not-found is mapped rather than passed through. By the time this is
+// called the repository has already answered, so a not-found here is about the
+// release and not about the repository, and returning ErrNotFound would report
+// a declaration pointing at nothing.
+//
+// What it answers about is the finished side of the split. The endpoint skips
+// drafts and prereleases, so a repository that has only ever published
+// prereleases answers not-found here, and the caller is what decides what to do
+// with that.
+func (c *Client) LatestRelease(ctx context.Context, account, repository string) (string, error) {
+	var body struct {
+		TagName string `json:"tag_name"`
+	}
+	address := fmt.Sprintf("%s/repos/%s/%s/releases/latest",
+		strings.TrimRight(c.API, "/"), url.PathEscape(account), url.PathEscape(repository))
+	if _, err := c.get(ctx, address, &body); err != nil {
+		if errors.Is(err, sources.ErrNotFound) {
+			return "", sources.ErrNoRelease
+		}
+		return "", err
+	}
+	return body.TagName, nil
 }
 
 func (c *Client) fullName(ctx context.Context, account, repository string) (string, error) {

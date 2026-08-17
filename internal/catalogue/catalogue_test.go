@@ -51,6 +51,23 @@ func (l listing) ListReleases(_ context.Context, account, repository string) ([]
 	return releases, path, nil
 }
 
+// LatestRelease answers out of the same fixture the list is made of, so a
+// declared repository this map says has published nothing is corroborated as
+// having published nothing rather than being a disagreement between two
+// readings. What that disagreement does is internal/sources' question and is
+// judged there.
+func (l listing) LatestRelease(_ context.Context, account, repository string) (string, error) {
+	path := account + "/" + repository
+	releases, ok := l[path]
+	if !ok {
+		return "", sources.ErrNotFound
+	}
+	if len(releases) == 0 {
+		return "", sources.ErrNoRelease
+	}
+	return releases[0].Tag, nil
+}
+
 // declaring builds the declared set through the loader rather than by filling in
 // the struct, because the pattern that decides which side of the channel split a
 // tag falls on is compiled there and a hand-built declaration carries none.

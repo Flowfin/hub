@@ -47,6 +47,13 @@ type Release struct {
 // see, whichever of the two reasons applies.
 var ErrNotFound = errors.New("not found")
 
+// ErrNoRelease is what LatestRelease returns for a repository that has published
+// nothing. It is separate from ErrNotFound because by the time it is asked the
+// repository has already answered, so the two say different things: one is a
+// declaration pointing at nothing and this one is a repository with an empty
+// history.
+var ErrNoRelease = errors.New("no release")
+
 // Lister answers what a declared repository has published.
 //
 // It returns the path the request actually landed on, because that is the only
@@ -60,6 +67,18 @@ var ErrNotFound = errors.New("not found")
 // the network, and the real implementation is the only thing that does.
 type Lister interface {
 	ListReleases(ctx context.Context, account, repository string) (releases []Release, landedOn string, err error)
+
+	// LatestRelease names one release the repository has published, or returns
+	// ErrNoRelease where it has published none.
+	//
+	// It exists for one answer the list cannot be trusted on alone. An empty
+	// list is a success carrying no rows, so a listing route that answers empty
+	// for a repository with releases is indistinguishable from a repository
+	// that has published nothing, and the run turns the second reading into a
+	// sentence it prints. This is a route to the same fact that does not share
+	// the list's answer, so the two disagreeing is a state rather than a
+	// conclusion.
+	LatestRelease(ctx context.Context, account, repository string) (tag string, err error)
 }
 
 // State is what a run learned about one declaration.
@@ -83,6 +102,11 @@ const (
 	Redirected
 	// Unreadable: a transport or credential failure. Fatal.
 	Unreadable
+	// Contradicted: the release list answered empty and a second reading of the
+	// same repository returned a release. Fatal, because the run cannot say
+	// which of the two readings describes the repository, and the cheaper of
+	// the two answers is the one that quietly shortens the catalogue.
+	Contradicted
 )
 
 func (s State) String() string {
@@ -101,6 +125,8 @@ func (s State) String() string {
 		return "resolves under another name"
 	case Unreadable:
 		return "could not be read"
+	case Contradicted:
+		return "empty list contradicted"
 	}
 	return "unknown"
 }
@@ -118,8 +144,14 @@ func (s State) String() string {
 // served, or the day somebody creates a repository at the freed name, the run
 // reads a different repository than the one that was declared. The repair is one
 // field, and it is only available at this layer.
+//
+// Contradicted is the decision file's own sentence about a failed read applied
+// to a read that did not fail. It puts a transport failure in the fatal column
+// because its symptom is an empty or short list, which looks exactly like
+// success; an empty list that a second reading disagrees with is that symptom
+// arriving without the failure, so it lands in the same column.
 func (s State) Fatal() bool {
-	return s == Unresolvable || s == Redirected || s == Unreadable
+	return s == Unresolvable || s == Redirected || s == Unreadable || s == Contradicted
 }
 
 // Resolution is one declaration and what became of it.
@@ -201,8 +233,7 @@ func resolveOne(ctx context.Context, lister Lister, d Declaration) Resolution {
 	}
 
 	if len(releases) == 0 {
-		r.State, r.Detail = NoReleases, fmt.Sprintf("%s has published nothing", d.Path())
-		return r
+		return corroborate(ctx, lister, d, r)
 	}
 
 	r.Releases = releases
@@ -222,6 +253,42 @@ func resolveOne(ctx context.Context, lister Lister, d Declaration) Resolution {
 
 	r.State = Resolved
 	r.Detail = fmt.Sprintf("%d finished, %d test", r.Finished, r.Test)
+	return r
+}
+
+// corroborate decides what an empty release list means, by asking the same
+// repository a second way.
+//
+// The list is the only answer here that carries no evidence of itself. A
+// not-found is a status, a transport failure is an error, and a redirect is a
+// name that came back different, so each of those says something a run can act
+// on. An empty list is a success with no rows in it, and a route answering that
+// way for a repository with releases produces the sentence this function
+// exists to keep the run from printing.
+//
+// A read that fails is fatal rather than a reason to keep the first answer. The
+// sentence "has published nothing" would then rest on a reading nothing
+// corroborated, which is the shape decisions/failure-posture.md puts in the
+// fatal column: the run cannot say what exists and every conclusion drawn from
+// it is unfounded.
+//
+// What it does not reach is a repository whose releases are all on the test side
+// of the split. The second reading names a finished release or none, so such a
+// repository agrees with the empty list and keeps the state below. The published
+// catalogue carries finished releases only, so a plugin in that state
+// contributes nothing to the file whichever way the state falls.
+func corroborate(ctx context.Context, lister Lister, d Declaration, r Resolution) Resolution {
+	tag, err := lister.LatestRelease(ctx, d.Account, d.Repository)
+	switch {
+	case errors.Is(err, ErrNoRelease):
+		r.State, r.Detail = NoReleases, fmt.Sprintf("%s has published nothing", d.Path())
+	case err != nil:
+		r.State = Unreadable
+		r.Detail = fmt.Sprintf("%s listed no releases and the reading that would corroborate it failed: %v", d.Path(), err)
+	default:
+		r.State = Contradicted
+		r.Detail = fmt.Sprintf("%s listed no releases and answers with %s when asked for its newest one", d.Path(), tag)
+	}
 	return r
 }
 
@@ -252,7 +319,7 @@ func Report(resolutions []Resolution) string {
 
 	fmt.Fprintf(&b, "\n%d of %d declared plugin(s) resolved with something to publish.\n",
 		resolved, len(sorted))
-	for _, s := range []State{Disabled, NoReleases, NoFinishedReleases, Unresolvable, Redirected, Unreadable} {
+	for _, s := range []State{Disabled, NoReleases, NoFinishedReleases, Unresolvable, Redirected, Unreadable, Contradicted} {
 		if n := counts[s]; n > 0 {
 			fmt.Fprintf(&b, "  %d %s\n", n, s)
 		}

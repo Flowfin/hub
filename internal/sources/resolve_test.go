@@ -15,6 +15,13 @@ type answers struct {
 	releases map[string][]Release
 	landedOn map[string]string
 	failures map[string]error
+
+	// latest is what the second reading of a repository returns, for the tests
+	// that plant a disagreement between the two. Where a path is absent from
+	// both maps below, the second reading is derived from the list, so a
+	// fixture that says nothing about it cannot accidentally contradict itself.
+	latest       map[string]string
+	latestFailed map[string]error
 }
 
 func (a answers) ListReleases(_ context.Context, account, repository string) ([]Release, string, error) {
@@ -30,6 +37,20 @@ func (a answers) ListReleases(_ context.Context, account, repository string) ([]
 		landed = other
 	}
 	return a.releases[path], landed, nil
+}
+
+func (a answers) LatestRelease(_ context.Context, account, repository string) (string, error) {
+	path := account + "/" + repository
+	if err, ok := a.latestFailed[path]; ok {
+		return "", err
+	}
+	if tag, ok := a.latest[path]; ok {
+		return tag, nil
+	}
+	if got := a.releases[path]; len(got) > 0 {
+		return got[0].Tag, nil
+	}
+	return "", ErrNoRelease
 }
 
 func declare(t *testing.T, slug, repository string, enabled bool) Declaration {
@@ -156,6 +177,81 @@ func TestAReadThatFailedIsFatalAndIsNotAnEmptyRepository(t *testing.T) {
 	}
 	if !got[0].State.Fatal() {
 		t.Fatal("a failed read does not stop the run")
+	}
+}
+
+func TestAnEmptyListASecondReadingContradictsStopsTheRun(t *testing.T) {
+	// The failure this is against arrives as a success. A listing route that
+	// answers with no rows for a repository that has releases produces the same
+	// bytes as a repository that has published nothing, and the run prints the
+	// second reading as a sentence about the plugin.
+	quiet := declare(t, "quiet", "plugin-quiet", true)
+	lister := answers{
+		releases: map[string][]Release{quiet.Path(): {}},
+		latest:   map[string]string{quiet.Path(): "v4.2.1"},
+	}
+
+	got := Resolve(context.Background(), lister, []Declaration{quiet})
+	if got[0].State != Contradicted {
+		t.Fatalf("an empty list a second reading disagrees with was classified as %v (%s)", got[0].State, got[0].Detail)
+	}
+	if !got[0].State.Fatal() {
+		t.Fatal("an empty list a second reading disagrees with does not stop the run")
+	}
+	if !strings.Contains(got[0].Detail, "v4.2.1") {
+		t.Fatalf("the message does not name the release the second reading returned: %q", got[0].Detail)
+	}
+	if err := Judge(got); err == nil {
+		t.Fatal("the run was not stopped")
+	}
+	if report := Report(got); !strings.Contains(report, "1 empty list contradicted") {
+		t.Fatalf("the report does not count the state:\n%s", report)
+	}
+}
+
+func TestAnEmptyListASecondReadingAgreesWithIsStillAnEmptyRepository(t *testing.T) {
+	// The ordinary case here rather than an edge, and the guard above may not
+	// take it with it. Ten of the twelve declared repositories are in this state
+	// and a run that refused it would publish nothing on any day.
+	quiet := declare(t, "quiet", "plugin-quiet", true)
+	other := declare(t, "other", "plugin-other", true)
+	lister := answers{releases: map[string][]Release{
+		quiet.Path(): {},
+		other.Path(): {{Tag: "v1.0"}},
+	}}
+
+	got := Resolve(context.Background(), lister, []Declaration{quiet, other})
+	if got[0].State != NoReleases {
+		t.Fatalf("a repository both readings call empty was classified as %v (%s)", got[0].State, got[0].Detail)
+	}
+	if got[0].State.Fatal() {
+		t.Fatal("a repository that has published nothing stops the run")
+	}
+	if err := Judge(got); err != nil {
+		t.Fatalf("a set carrying one empty repository did not resolve: %v", err)
+	}
+}
+
+func TestACorroborationThatFailedIsFatalRatherThanAnEmptyRepository(t *testing.T) {
+	// A reading that did not happen corroborates nothing. Keeping the first
+	// answer here would put "has published nothing" into the report on the
+	// strength of a request that failed, which is the claim from a read that did
+	// not happen this run refuses everywhere else.
+	quiet := declare(t, "quiet", "plugin-quiet", true)
+	lister := answers{
+		releases:     map[string][]Release{quiet.Path(): {}},
+		latestFailed: map[string]error{quiet.Path(): errors.New("504 Gateway Timeout")},
+	}
+
+	got := Resolve(context.Background(), lister, []Declaration{quiet})
+	if got[0].State != Unreadable {
+		t.Fatalf("a corroboration that failed was classified as %v (%s)", got[0].State, got[0].Detail)
+	}
+	if !strings.Contains(got[0].Detail, "504 Gateway Timeout") {
+		t.Fatalf("the message does not carry what failed: %q", got[0].Detail)
+	}
+	if err := Judge(got); err == nil {
+		t.Fatal("a corroboration that failed did not stop the run")
 	}
 }
 
