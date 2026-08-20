@@ -1,0 +1,78 @@
+# The publication run: build the catalogue from the declared sources and place
+# it at the file the install address answers with.
+#
+# Plugins release when they release, so the catalogue has to catch up without
+# anybody remembering to start it, and the run somebody wants most is the one
+# right after a release. The two triggers below are that pair and nothing else.
+#
+# What a run here does not do is put the file in front of an operator. The site
+# is served from the docs directory of the default branch, and
+# decisions/release-procedure.md keeps a pull request and a merge in the way of
+# that directory on purpose. So the branch, the gate and the merge are the same
+# route as every other change, and this workflow is the part in front of them.
+#
+# That makes the verdict the run prints the thing to read. On the default branch
+# `wrote new bytes` means the published catalogue no longer matches what the
+# declarations come to and a merge is owed; `nothing to write` means it does.
+# internal/publish decides that before the write rather than reading it off the
+# file afterwards, because identical bytes rewritten move the size and the
+# modification time exactly as new bytes do.
+#
+# Hardened the way every other workflow here is: actions pinned by commit with
+# the version beside them, checkout without persisted credentials, and read-only
+# permissions, because no step here pushes anything.
+name: Publish
+
+on:
+  # Daily, and ahead of the sweep in this tree, so a run that died is reported
+  # by that morning's sweep rather than a day later.
+  schedule:
+    - cron: "23 5 * * *"
+  # And on request, which is the run wanted the moment a plugin releases.
+  workflow_dispatch:
+
+# Read-only. The run writes into its own checkout and pushes nowhere.
+permissions:
+  contents: read
+
+# Runs over one destination are serialised, and the run holding the write is
+# never the one cancelled. That is the opposite of the setting in gate.yml next
+# door, where a superseded run is cancelled because every leg there is a read.
+#
+# The group names the destination rather than the workflow or the ref. A group
+# carrying either of those would put a scheduled run and a hand-started one in
+# different queues and let them write the same file at once, which is the
+# failure this whole block exists against. internal/publish.Target.Group is
+# where the name comes from, and the suite refuses this file declaring another.
+#
+# The trap that is cheaper to read here than to find later: a group holds one
+# running and one queued run. Asking for a run by hand while a scheduled one is
+# already queued evicts the queued one. That is acceptable, because the run that
+# survives reads the same sources and produces the same catalogue, and it is
+# written down here so that a publication that never happened is not a mystery.
+concurrency:
+  group: publish-docs/manifest.json
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: "Publish: catalogue"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # go.mod is the authority for the version floor, so it is read rather
+          # than restated here where it would drift.
+          go-version-file: go.mod
+      - name: Build the catalogue and place it
+        run: go run . publish
+        env:
+          # The declared sources are public, so a run without a token still
+          # works and meets the rate limit sooner. This is the run's own token
+          # and carries the read-only permissions above.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
