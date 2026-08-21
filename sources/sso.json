@@ -3,6 +3,6 @@
     "repository": "jellyfin-plugin-sso",
     "slug": "sso",
     "stable_tags": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?(-stable)?$",
-    "enabled": true,
-    "note": "The pattern is measured rather than guessed: decisions/channel-model.md runs it over all 54 tags and it selects exactly the four finished ones. A rule reading hyphens instead would put 4.2.1-stable in the test channel."
+    "enabled": false,
+    "note": "Off for the first publication, and #65 is where that was settled. Every release this repository has published on the finished side of the split ships the archive, an md5 and a sha256 and no zip.meta.json descriptor beside them, so none of them produces a catalogue entry and decisions/failure-posture.md stops the whole run on the newest one. Turn it back on when a tag the pattern above selects carries the descriptor beside the archive; nothing else about this record has to change on that day. The pattern itself is measured rather than guessed: decisions/channel-model.md runs it over the tag list and it selects exactly the finished releases, where a rule reading hyphens instead would put 4.2.1-stable in the test channel."
 }
