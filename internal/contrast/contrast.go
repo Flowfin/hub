@@ -15,12 +15,20 @@
 // internal/tokens, so a green here says the declared values are legible and
 // leaves whether the page still renders them to that leg.
 //
-// What it does not reach, so that a green is not read as more than it is. The
-// text colours are not preset-dependent and are not judged here: ink, ink-2 and
-// ink-3 against the surfaces are one pair set for the whole system, and #37 has
-// the measurement of them. Nothing here reads a rendered page, so the size a
-// piece of text is actually painted at, whether a focus ring is drawn at all,
-// and whether an element can be reached from the keyboard are all outside it.
+// It also refuses a text colour that does not stand off the surface it is
+// written on. Those pairs do not move with the preset, so they are judged once
+// for the whole system rather than ten times: three inks against three surfaces
+// in two brightness schemes. They are here rather than in a check of their own
+// because a colour tweak that lowers one of them is the same event this package
+// exists for, and a repair the tree does not re-read is a repair until the next
+// tweak.
+//
+// What it does not reach, so that a green is not read as more than it is.
+// Nothing here reads a rendered page, so the size a piece of text is actually
+// painted at, whether a focus ring is drawn at all, and whether an element can
+// be reached from the keyboard are all outside it. The last of those is the
+// second half of #37 and needs a browser, which decisions/means.md is where the
+// cost of is argued.
 package contrast
 
 import (
@@ -54,10 +62,10 @@ const FocusFloor = 3.0
 // TextFloor is the contrast ratio text must reach against what is behind it.
 //
 // 4.5 is WCAG 2.2 success criterion 1.4.3 for text below the large-text
-// boundary. The one text pair this package judges is primary ink over the soft
-// form of the accent, which is the pressed state of a control and is the only
-// text pair the preset moves. Every other text pair is fixed across the ten
-// palettes and is not this check's subject.
+// boundary. Taking the large-text figure instead would be the wrong number for
+// this system rather than a looser one: the smallest thing the published page
+// paints in the tertiary ink is 10.5px, and the boundary is 18.66px bold or
+// 24px regular.
 const TextFloor = 4.5
 
 // Colour is an sRGB colour and an alpha, in the shape docs/design-tokens.json
@@ -158,11 +166,20 @@ type Pair struct {
 // Schemes are the brightness schemes every colour carries, in report order.
 var Schemes = []string{"dark", "light"}
 
-// Surfaces are the surface tokens a focus indicator can be drawn on, in report
-// order. The hairline is not among them: it separates where brightness already
-// does, so it is not the only means of anything, and holding a deliberately
-// faint line to a contrast floor would refuse the design rather than a defect.
+// Surfaces are the surface tokens a focus indicator or a piece of text can be
+// drawn on, in report order. The hairline is not among them: it separates where
+// brightness already does, so it is not the only means of anything, and holding
+// a deliberately faint line to a contrast floor would refuse the design rather
+// than a defect.
 var Surfaces = []string{"ground", "raise", "raise-2"}
+
+// Inks are the text tokens, in report order.
+//
+// All three are here and not only the faintest. The scale is stated as three
+// steps of one thing, so a change that lifted the third above the second would
+// leave the file passing a check that only ever looked at the third, and the
+// order the design system promises would be gone with nothing saying so.
+var Inks = []string{"ink", "ink-2", "ink-3"}
 
 // Load reads a token file.
 func Load(r io.Reader) (Tokens, error) {
@@ -214,6 +231,7 @@ func (p Preset) scheme(name string) (Pair, error) {
 const (
 	RuleFocus = "a focus colour stands off every surface it can be drawn on"
 	RuleText  = "text on the soft accent is readable"
+	RuleInk   = "every ink stands off every surface it is written on"
 )
 
 // Finding is one refusal.
@@ -227,8 +245,15 @@ type Finding struct {
 }
 
 func (f Finding) String() string {
-	return fmt.Sprintf("%s/%s: %s is %.2f:1, under the floor of %.1f:1 (%s)",
-		f.Preset, f.Scheme, f.Subject, f.Ratio, f.Floor, f.Rule)
+	// A finding with no preset is one about a pair every preset shares, and
+	// printing an empty field in front of the scheme would read as a preset
+	// whose name went missing rather than as a pair that has none.
+	where := f.Scheme
+	if f.Preset != "" {
+		where = f.Preset + "/" + f.Scheme
+	}
+	return fmt.Sprintf("%s: %s is %.2f:1, under the floor of %.1f:1 (%s)",
+		where, f.Subject, f.Ratio, f.Floor, f.Rule)
 }
 
 // Check judges every combination the token file offers and says how many it
@@ -292,6 +317,32 @@ func Check(t Tokens) (found []Finding, examined int, err error) {
 					Subject: "ink on the soft accent over raise",
 					Ratio:   r, Floor: TextFloor, Rule: RuleText,
 				})
+			}
+		}
+	}
+
+	// The text pairs, judged once rather than once per preset. Nothing in the
+	// preset moves an ink or a surface, so running them inside the loop above
+	// would multiply the count by five and say nothing more.
+	for _, scheme := range Schemes {
+		for _, ink := range Inks {
+			fg, err := t.surface(ink, scheme)
+			if err != nil {
+				return nil, 0, err
+			}
+			for _, s := range Surfaces {
+				bg, err := t.surface(s, scheme)
+				if err != nil {
+					return nil, 0, err
+				}
+				examined++
+				if r := Ratio(fg, bg); r < TextFloor {
+					found = append(found, Finding{
+						Scheme:  scheme,
+						Subject: ink + " on " + s,
+						Ratio:   r, Floor: TextFloor, Rule: RuleInk,
+					})
+				}
 			}
 		}
 	}

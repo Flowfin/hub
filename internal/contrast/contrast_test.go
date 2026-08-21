@@ -64,13 +64,15 @@ func TestATintIsJudgedOverWhatItIsPaintedOn(t *testing.T) {
 func TestEveryCombinationTheFileOffersIsExamined(t *testing.T) {
 	// A check that walked past a palette reports the same clean verdict as one
 	// that judged it, which is why the count is asserted rather than only the
-	// findings. One preset, two schemes, three surfaces plus the text pair.
+	// findings. One preset, two schemes, three surfaces plus the text pair is
+	// eight, and the three inks against the three surfaces in both schemes are
+	// the other eighteen.
 	found, examined, err := Check(load(t, "one_preset_clean.json"))
 	if err != nil {
 		t.Fatalf("checking: %v", err)
 	}
-	if examined != 8 {
-		t.Fatalf("examined %d combinations, want 8", examined)
+	if examined != 26 {
+		t.Fatalf("examined %d combinations, want 26", examined)
 	}
 	if len(found) != 0 {
 		t.Fatalf("a fixture holding the published values was refused: %v", found)
@@ -86,8 +88,8 @@ func TestRefusesAnAccentLoweredAgainstOneSurfaceOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("checking: %v", err)
 	}
-	if examined != 8 {
-		t.Fatalf("examined %d combinations, want 8", examined)
+	if examined != 26 {
+		t.Fatalf("examined %d combinations, want 26", examined)
 	}
 	if len(found) != 1 {
 		t.Fatalf("the lowered accent produced %d refusals, want 1: %v", len(found), found)
@@ -140,7 +142,7 @@ func TestAFileWithNothingToJudgeIsAnErrorRatherThanACleanRun(t *testing.T) {
 	}
 }
 
-func TestTheDesignSystemsFocusColourStandsOffEverySurface(t *testing.T) {
+func TestTheDesignSystemsColoursStandOffEverySurface(t *testing.T) {
 	// The leg, against what this repository actually publishes.
 	f, err := os.Open(filepath.Join("..", "..", filepath.FromSlash(File)))
 	if err != nil {
@@ -155,17 +157,84 @@ func TestTheDesignSystemsFocusColourStandsOffEverySurface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("checking the token file: %v", err)
 	}
-	// Five presets, two schemes, three surfaces plus the text pair. Stated so
-	// that a preset quietly dropped from the file is a failure here rather than
-	// one palette fewer to walk.
-	if examined != 40 {
-		t.Fatalf("examined %d combinations of the published tokens, want 40", examined)
+	// Five presets, two schemes, three surfaces plus the text pair is forty, and
+	// the three inks against the three surfaces in both schemes are eighteen.
+	// Stated so that a preset or an ink quietly dropped from the file is a
+	// failure here rather than one combination fewer to walk.
+	if examined != 58 {
+		t.Fatalf("examined %d combinations of the published tokens, want 58", examined)
 	}
 	if len(found) != 0 {
 		var lines []string
 		for _, f := range found {
 			lines = append(lines, f.String())
 		}
-		t.Fatalf("the focus colour does not stand off every surface:\n%s", strings.Join(lines, "\n"))
+		t.Fatalf("a published colour does not stand off every surface:\n%s", strings.Join(lines, "\n"))
+	}
+}
+
+func TestRefusesAnInkLoweredAgainstOneSurfaceOnly(t *testing.T) {
+	// The same one-character mistake as the accent, on the pairs that were left
+	// unjudged until #37. The tertiary ink is nudged back one step: it still
+	// clears the ground and the first raised surface in both schemes, and it no
+	// longer clears raise-2. Anybody who checked the surface they happened to be
+	// looking at would ship this.
+	found, examined, err := Check(load(t, "ink_lowered_one_step.json"))
+	if err != nil {
+		t.Fatalf("checking: %v", err)
+	}
+	if examined != 26 {
+		t.Fatalf("examined %d combinations, want 26", examined)
+	}
+	if len(found) != 2 {
+		t.Fatalf("the lowered ink produced %d refusals, want 2, one per scheme: %v", len(found), found)
+	}
+	for _, f := range found {
+		if f.Rule != RuleInk {
+			t.Fatalf("refused under %q, want %q", f.Rule, RuleInk)
+		}
+		if !strings.Contains(f.Subject, "ink-3 on raise-2") {
+			t.Fatalf("the refusal does not name the pair: %s", f)
+		}
+		if f.Ratio >= TextFloor {
+			t.Fatalf("the refusal quotes %.2f, which is not under the floor: %s", f.Ratio, f)
+		}
+		// A finding about a pair no preset moves carries no preset, and saying
+		// so is the difference between "every palette" and "one whose name went
+		// missing".
+		if f.Preset != "" {
+			t.Fatalf("an ink finding named the preset %q, and no preset moves an ink", f.Preset)
+		}
+		if strings.HasPrefix(f.String(), "/") {
+			t.Fatalf("the refusal prints an empty preset in front of the scheme: %s", f)
+		}
+	}
+	schemes := map[string]bool{}
+	for _, f := range found {
+		schemes[f.Scheme] = true
+	}
+	if !schemes["dark"] || !schemes["light"] {
+		t.Fatalf("the refusals do not cover both brightness schemes: %v", found)
+	}
+}
+
+func TestTheWholeInkScaleIsJudgedAndNotOnlyTheFaintestStep(t *testing.T) {
+	// The scale is three steps of one thing, so a change that lifted the third
+	// above the second would pass a check looking only at the third while the
+	// order the design system promises was gone. Asserting the token names the
+	// check walks is what keeps that from being a silent narrowing later.
+	if len(Inks) != 3 {
+		t.Fatalf("the check reads %d ink(s): %v", len(Inks), Inks)
+	}
+	for _, want := range []string{"ink", "ink-2", "ink-3"} {
+		var seen bool
+		for _, got := range Inks {
+			if got == want {
+				seen = true
+			}
+		}
+		if !seen {
+			t.Errorf("%s is not among the inks the check reads: %v", want, Inks)
+		}
 	}
 }
