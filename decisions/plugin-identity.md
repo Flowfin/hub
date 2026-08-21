@@ -29,9 +29,19 @@ history cannot disagree.
 
 **Identity is one answer per plugin and does not depend on the channel being
 generated.** The version list is per channel, which is `decisions/channel-model.md`.
-Identity is not. Entry 5 of #1 puts the same plugin in two published files, and a
-plugin whose `guid` appears twice under two different names is a defect a server
-has no way to resolve.
+Identity is not: it follows the plugin rather than the list the plugin appears
+in, so scoping it to the channel being generated would leave a plugin whose
+descriptors all sit on the other side of the split with no identity at all. That
+case is live rather than constructed, and the section below on what this costs
+measures it.
+
+The reason first given here was a different one, and it is superseded rather than
+still standing. It read that entry 5 of #1 puts the same plugin in two published
+files, and that a plugin whose `guid` appears twice under two different names is
+a defect a server has no way to resolve. Entry 5 was answered on 2026-08-21 with
+one address carrying finished builds only, so one file is published and a plugin
+appears in it once. What that answer moved is the reason and not the rule, which
+is why the rule above is stated on its own ground.
 
 **There is no fallback to an older release.** If the newest release carrying a
 descriptor carries one that cannot be read, or one that is missing a value the
