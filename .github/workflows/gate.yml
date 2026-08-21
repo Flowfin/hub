@@ -202,8 +202,8 @@ jobs:
           go-version-file: go.mod
       - run: go run . gate install-address-is-answered
 
-  focus-stands-off-every-surface:
-    name: "Gate: focus-stands-off-every-surface"
+  colour-stands-off-every-surface:
+    name: "Gate: colour-stands-off-every-surface"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -213,7 +213,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - run: go run . gate focus-stands-off-every-surface
+      - run: go run . gate colour-stands-off-every-surface
 
   page-matches-the-token-file:
     name: "Gate: page-matches-the-token-file"

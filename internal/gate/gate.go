@@ -195,16 +195,21 @@ func Legs() []Leg {
 			Refuses: "an install address printed in a tracked file before anybody has read it",
 		},
 		{
-			// focus-stands-off-every-surface, the machine-decidable half of
+			// colour-stands-off-every-surface, the machine-decidable half of
 			// #37. Its own leg because a red here is not a broken page and not
 			// a wrong value: it is one of ten palettes having gone unreadable,
 			// and the reader it fails is the one least able to compensate for
 			// it. Its subject is the token file rather than the served page,
 			// because that file is the authority for these values, and the leg
 			// below is what holds the page to it.
-			Name:    "focus-stands-off-every-surface",
-			Argv:    []string{"go", "test", "./internal/contrast", "-run", "TestTheDesignSystemsFocusColourStandsOffEverySurface", "-count=1"},
-			Refuses: "a focus colour that does not stand off a surface it is drawn on, in any brightness scheme and colour-vision preset",
+			//
+			// It judges the text pairs as well as the focus colour, which is
+			// why it is no longer named for the focus alone. Those pairs do not
+			// move with the preset, so a check of their own would run on the
+			// same file for the same reason and be forgotten in the same tweak.
+			Name:    "colour-stands-off-every-surface",
+			Argv:    []string{"go", "test", "./internal/contrast", "-run", "TestTheDesignSystemsColoursStandOffEverySurface", "-count=1"},
+			Refuses: "a focus or text colour that does not stand off a surface it is drawn on, in any brightness scheme and colour-vision preset",
 		},
 		{
 			// page-matches-the-token-file, which #40 asks for. Its own leg

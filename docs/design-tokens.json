@@ -42,16 +42,16 @@
         "light": { "srgb": "#0E0E11", "alpha": 1 }
       },
       "ink-2": {
-        "role": "Secondary text: a lede, a description, a caption that is read after the thing it captions.",
+        "role": "Secondary text: a lede, a description, a caption that is read after the thing it captions. The second of three steps, and the step below it is a small one rather than a visible drop.",
         "css-var": "--ink2",
         "dark": { "srgb": "#9C9CA6", "alpha": 1 },
         "light": { "srgb": "#63636B", "alpha": 1 }
       },
       "ink-3": {
-        "role": "Tertiary text: labels, units, the year beside a title.",
+        "role": "Tertiary text: labels, units, the year beside a title. It is a third step of the same scale and not a fainter one: it clears the same 4.5:1 floor as ink and ink-2 against every surface, and the distance from ink-2 is under one and a quarter of contrast ratio in the widest case. Reach for it where the words are ones a reader passes over, never to make text recede, because it will not.",
         "css-var": "--ink3",
-        "dark": { "srgb": "#6E6E79", "alpha": 1 },
-        "light": { "srgb": "#8E8E96", "alpha": 1 }
+        "dark": { "srgb": "#8C8C9A", "alpha": 1 },
+        "light": { "srgb": "#6D6D73", "alpha": 1 }
       }
     }
   },

@@ -136,12 +136,19 @@ than one that reports a miss.
 ## What refuses a violation
 
 One thing, and it is not one of the sentences above.
-`focus-stands-off-every-surface`, a named leg of the gate, in
+`colour-stands-off-every-surface`, a named leg of the gate, in
 `internal/contrast`. It reads the token file and refuses a focus colour that
 does not clear a contrast floor against a surface it can be drawn on, in every
 brightness scheme and colour-vision preset. Ten palettes, and the one that goes
 unreadable is by construction the one belonging to the eye least able to
 compensate.
+
+It refuses a text colour on the same ground. The three inks against the three
+surfaces do not move with the preset, so they are judged once for the whole
+system rather than ten times, and they are judged by this leg rather than by one
+of their own because the event that lowers one of them is the same colour tweak
+nobody re-reads. The leg was called `focus-stands-off-every-surface` while the
+focus colour was all it read.
 
 The floor it applies is not stated anywhere in this system. It is WCAG 2.2, 3:1
 for a component's own colour and 4.5:1 for text, taken because taking nothing
