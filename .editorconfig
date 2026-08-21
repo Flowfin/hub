@@ -42,3 +42,10 @@ indent_size = 4
 # there is one place to argue with that rather than two.
 [*.md]
 indent_size = 4
+
+# The go command writes the module file's require block with tabs, so this
+# follows the toolchain for the same reason the Go section above does. go.sum
+# is not here because nothing in it is indented.
+[go.mod]
+indent_style = tab
+indent_size = 4
