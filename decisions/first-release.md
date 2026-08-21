@@ -20,29 +20,65 @@ opening a browser.
 
 ## Which plugins the catalogue carries
 
-One, and that is a decision argued below rather than a count read off the
-repositories. The count has moved since it was argued:
+One entry, and it is `requests`. #65 settled that on 2026-08-21 against the
+counts below rather than against the ones this section was first written with,
+and `sources/sso.json` carries the answer as `"enabled": false` with the
+condition that turns it back on.
 
     for r in discover invites metadata-sync requests server-pairing share-links \
              smart-collections sso stats watch-sync watchlist whisper-subtitles; do
       printf "%s %s\n" "$r" "$(gh api "repos/Flowfin/jellyfin-plugin-$r/releases?per_page=100" --jq 'length')"
     done
 
-Run 2026-08-08: 54 for `sso`, 1 for `requests`, 0 for the other ten. The second of
-those was zero when this section was written, so the argument below was made
-against a set of one and now describes a choice between one and two. Which of them
-the first release carries is #65 and is not settled here.
+Run 2026-08-21: 74 for `sso`, 1 for `requests`, 0 for the other ten. Both counts
+move, so re-run it rather than citing it.
 
-So the first release either waits for plugins that do not exist yet, or it ships
-a catalogue with one entry. One entry is the answer, for two reasons that are
-worth separating.
+Two repositories have published and only one of them can produce an entry, which
+is the fact the choice turns on rather than the totals above. Every release `sso`
+has published on the finished side of the channel split ships the archive, an
+md5 and a sha256, and none of them ships the `.zip.meta.json` descriptor beside
+it:
 
-It makes something installable that is not installable today, which is the gap
-this repository was opened to fill. And it exercises the catalogue's machinery
-against a real server while there is one plugin to debug rather than twelve. The
-alternative leaves the generator, the publication route and the manifest format
-unproven until the day eleven things need them at once, which is the worst
-possible day to find out that a field is wrong.
+    gh api 'repos/Flowfin/jellyfin-plugin-sso/releases?per_page=100' \
+      --jq '.[] | select(.tag_name|test("^v?[0-9]+[.][0-9]+[.][0-9]+([.][0-9]+)?(-stable)?$")) | {tag: .tag_name, assets: [.assets[].name]}'
+    {"assets":["sso-authentication_4.2.1.0.md5","sso-authentication_4.2.1.0.sha256","sso-authentication_4.2.1.0.zip"],"tag":"4.2.1-stable"}
+    {"assets":["sso-authentication_4.2.0.0.md5","sso-authentication_4.2.0.0.sha256","sso-authentication_4.2.0.0.zip"],"tag":"4.2.0-stable"}
+    {"assets":["sso-authentication_4.1.1.0.md5","sso-authentication_4.1.1.0.sha256","sso-authentication_4.1.1.0.zip"],"tag":"4.1.1-stable"}
+    {"assets":["sso-authentication_4.1.0.0.md5","sso-authentication_4.1.0.0.sha256","sso-authentication_4.1.0.0.zip"],"tag":"v4.1.0.0"}
+
+    gh api 'repos/Flowfin/jellyfin-plugin-requests/releases?per_page=100' \
+      --jq '.[] | {tag: .tag_name, prerelease, draft, assets: [.assets[].name]}'
+    {"assets":["requests_0.1.0.0.md5","requests_0.1.0.0.sha256","requests_0.1.0.0.zip","requests_0.1.0.0.zip.meta.json"],"draft":false,"prerelease":false,"tag":"0.1.0.0-stable"}
+
+Both run 2026-08-21. `decisions/plugin-identity.md` reads the guid, the name, the
+description, the overview, the owner, the category and the version entry's four
+fields out of that descriptor, so a release without one produces no entry, and
+`decisions/failure-posture.md` stops the whole run on a defect in the newest
+release of a channel. Left switched on, that repository does not shorten the
+catalogue by one entry; it stops the catalogue existing.
+
+So the choice is between a catalogue with one entry and no catalogue at all, and
+one entry is the answer for two reasons that are worth separating. It makes
+something installable that is not installable today, which is the gap this
+repository was opened to fill. And it exercises the catalogue's machinery against
+a real server while there is one plugin to debug rather than twelve, instead of
+leaving the generator, the publication route and the manifest format unproven
+until the day eleven things need them at once.
+
+The cost is real and belongs here rather than in the argument for it. The plugin
+the whole channel split was measured against is the one left out, so the first
+thing this catalogue proves is proved without the case it was designed for. The
+two alternatives cost more. Waiting for a finished `sso` tag carrying a
+descriptor means no catalogue for a period nobody here controls. Widening
+`stable_tags` until the finished channel picks up what that repository itself
+calls unfinished would give two entries immediately and would make "finished"
+mean one thing in the catalogue and another on the board it came from, at exactly
+the point where the catalogue makes a promise to a stranger.
+
+Nothing in this tree makes turning that declaration back on fall due, and the
+`note` in the record is the whole of the reminder. So the run prints the note of
+every disabled declaration on every run, which is what keeps a deliberate absence
+from reading like the ordinary case.
 
 The counterpart is honesty in the interface. A catalogue with one entry has to
 look like a catalogue with one entry rather than like a catalogue that failed to
@@ -51,9 +87,13 @@ the same one #11 draws for the run's verdict.
 
 ## What is deliberately not in it
 
-The other eleven plugins. They enter the catalogue when they publish a release,
-through the same pipeline and with no change here, and that is the property the
-first release is proving.
+The ten plugins that have published nothing. They enter the catalogue on the day
+they publish a finished release, through the same pipeline and with no change
+here, and that is the property the first release is proving.
+
+`sso` is the eleventh and is not one of them. It is left out by a field somebody
+set, so it comes back by a field somebody sets, which is the one place in this
+list where a person has to act rather than a repository.
 
 A test channel. Entry 5 of #1 answered on 2026-08-11 that pre-release builds get
 no second address, so the first release ships the finished list and there is no

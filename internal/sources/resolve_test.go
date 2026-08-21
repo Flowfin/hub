@@ -354,3 +354,56 @@ func TestEveryDeclarationAppearsInTheReport(t *testing.T) {
 		t.Errorf("the report is not in slug order:\n%s", report)
 	}
 }
+
+func TestADisabledDeclarationSaysWhyInEveryReport(t *testing.T) {
+	// The count line says one declaration is off and says nothing about why, so
+	// a catalogue that is short deliberately reads exactly like one that is
+	// short because somebody forgot. The note is the only place the reason is
+	// written, and a note nothing prints is a note nobody reads.
+	off := declare(t, "off", "plugin-off", false)
+	off.Note = "waiting for a finished release that carries a descriptor"
+	on := declare(t, "on", "plugin-on", true)
+	lister := answers{releases: map[string][]Release{
+		"an-account/plugin-on": {{Tag: "v1.0"}},
+	}}
+
+	report := Report(Resolve(context.Background(), lister, []Declaration{off, on}))
+	if !strings.Contains(report, off.Note) {
+		t.Errorf("the report does not say why the disabled declaration is off:\n%s", report)
+	}
+	// The reason has to sit under the counts rather than anywhere in the text,
+	// because a slug appearing in the per-declaration line above would satisfy a
+	// looser assertion while the reason went unprinted.
+	if !strings.Contains(report, "why each disabled declaration is off:") {
+		t.Errorf("the report has no section naming the disabled declarations:\n%s", report)
+	}
+}
+
+func TestAReportOverNothingDisabledDoesNotOfferTheSection(t *testing.T) {
+	// The other direction of the same line. A heading over an empty list trains
+	// a reader to skip it, and then it is not read on the run where it carries
+	// something.
+	on := declare(t, "on", "plugin-on", true)
+	lister := answers{releases: map[string][]Release{
+		"an-account/plugin-on": {{Tag: "v1.0"}},
+	}}
+	report := Report(Resolve(context.Background(), lister, []Declaration{on}))
+	if strings.Contains(report, "why each disabled declaration is off:") {
+		t.Errorf("a run with nothing disabled printed the section anyway:\n%s", report)
+	}
+}
+
+func TestADisabledDeclarationWithNoNoteSaysThatRatherThanNothing(t *testing.T) {
+	// A record that gives no reason is the case the section exists for, so it
+	// prints the absence instead of an empty column that reads as tidy.
+	off := declare(t, "off", "plugin-off", false)
+	off.Note = ""
+	on := declare(t, "on", "plugin-on", true)
+	lister := answers{releases: map[string][]Release{
+		"an-account/plugin-on": {{Tag: "v1.0"}},
+	}}
+	report := Report(Resolve(context.Background(), lister, []Declaration{off, on}))
+	if !strings.Contains(report, "the record gives no note") {
+		t.Errorf("a disabled declaration with no note printed nothing about it:\n%s", report)
+	}
+}

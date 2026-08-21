@@ -292,8 +292,8 @@ func corroborate(ctx context.Context, lister Lister, d Declaration, r Resolution
 	return r
 }
 
-// Report writes one line per declaration, in slug order, and ends with the
-// counts.
+// Report writes one line per declaration, in slug order, then the counts, then
+// the reason each disabled declaration gives for being off.
 //
 // Every declaration appears, including the ones that contributed nothing.
 // decisions/failure-posture.md: a manifest that is short because releases were
@@ -322,6 +322,29 @@ func Report(resolutions []Resolution) string {
 	for _, s := range []State{Disabled, NoReleases, NoFinishedReleases, Unresolvable, Redirected, Unreadable, Contradicted} {
 		if n := counts[s]; n > 0 {
 			fmt.Fprintf(&b, "  %d %s\n", n, s)
+		}
+	}
+
+	// A declaration that is off is off for a reason, and the reason lives in the
+	// record rather than in the run. The count above says how many are disabled
+	// and nothing about why, so a catalogue that is short deliberately and one
+	// that is short because somebody forgot read the same. Printing the note
+	// every time is what keeps the reason from becoming part of the furniture.
+	// #65 is where that was asked for.
+	var off []Resolution
+	for _, r := range sorted {
+		if r.State == Disabled {
+			off = append(off, r)
+		}
+	}
+	if len(off) > 0 {
+		b.WriteString("\nwhy each disabled declaration is off:\n")
+		for _, r := range off {
+			note := r.Declaration.Note
+			if note == "" {
+				note = "the record gives no note, so the reason is written down nowhere"
+			}
+			fmt.Fprintf(&b, "  %-20s %s\n", r.Declaration.Slug, note)
 		}
 	}
 	return b.String()
