@@ -66,12 +66,30 @@ separated by hyphens, and it is emitted lowercase. A value of another shape is
 refused rather than passed through, since a server that cannot parse it treats
 the entry as a plugin it has never seen.
 
-`owner` is read from the descriptor like the rest. Entry 4 of #1 decided that the
-catalogue carries the account that publishes the releases, and the reason given
-there was that the field should show the same name as the release it came from.
-Reading it out of the release is that decision implemented, and it opens no
-second place where the name is decided. Writing the answer into this generator would
-be refused by `no-hardcoded-names`, which is `decisions/names-are-data.md`.
+`owner` is read from the descriptor like the rest. Entry 4 of #1 carries the
+publishing organisation, given on 2026-08-11 and settled on 2026-08-22 against the
+other answer this file was still stating. The ground it was settled on is that the
+organisation is a name somebody outside this project can check against a published
+artefact, where the releasing account is a fact about who pressed the button and
+only that person can confirm it. The other files naming this entry say 2026-08-11
+because that is the day the answer was given, and they were not rewritten here.
+
+The reason this file gave before is superseded rather than still standing. It read
+that entry 4 decided the catalogue carries the account that publishes the releases,
+so that the field would show the same name as the release it came from, and it
+called reading the value out of the release that decision implemented. The answer
+went the other way, so the reading is no longer entry 4 carried out.
+
+What holds the reading up instead is `decisions/names-are-data.md`. The name is a
+value the generator reads rather than a word typed into it, and writing an answer
+into this generator would be refused by `no-hardcoded-names`. That ground does not
+move with the answer, which is why it is the one stated here.
+
+What the reading does not do is compare the value it found against the answer.
+`Required` in `internal/identity/identity.go` decides that `owner` is present and
+is not whitespace and nothing further, so a descriptor carrying another name is
+published as it stands and the difference first shows on the server that renders
+it. #1 measures that rather than this file restating it.
 
 ## Why the sidecar rather than the build descriptor
 

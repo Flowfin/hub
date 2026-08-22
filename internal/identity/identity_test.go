@@ -77,9 +77,12 @@ func TestAReadableDescriptorSuppliesEveryPluginLevelField(t *testing.T) {
 	}
 }
 
-// The owner is read from the release rather than supplied here, which is entry 4
-// of #1 implemented rather than a second place the name is decided. A generator
-// that substituted its own answer would also be refused by no-hardcoded-names.
+// The owner is read from the release rather than supplied here, so this generator
+// is not a second place the name is decided. That is decisions/names-are-data.md
+// rather than entry 4 of #1: entry 4 says which name the catalogue carries and
+// this says where any name comes from, and the two were once written as one. A
+// generator that substituted its own answer would also be refused by
+// no-hardcoded-names.
 func TestTheOwnerComesFromTheDescriptorAndIsNotSubstituted(t *testing.T) {
 	body := descriptorBody(t, func(d map[string]any) { d["owner"] = "somebody-else" })
 
