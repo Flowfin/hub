@@ -31,6 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"flowfin.dev/hub/internal/identity"
@@ -81,6 +82,9 @@ func (r Route) Publish(ctx context.Context, out io.Writer, declarations []source
 	plugins, plans := Build(resolutions, r.Fetch)
 	fmt.Fprintf(out, "\nwhat each resolved plugin's releases came to:\n%s", posture.Report(plans))
 	if err := posture.Judge(plans); err != nil {
+		return err
+	}
+	if err := JudgeDropped(plans); err != nil {
 		return err
 	}
 	if err := Judge(plugins); err != nil {
@@ -212,6 +216,44 @@ func identityOf(plugin string, releases []sources.Release, fetch pairing.Fetch) 
 		}
 	}
 	return identity.Fields{}, &note
+}
+
+// JudgeDropped refuses a run in which a plugin that resolved contributes no
+// entry to the catalogue and nothing stops.
+//
+// A plan carrying no versions and no stops is exactly that plugin. Build's three
+// exclusions are an unreadable identity, a stop, and an entry with no versions,
+// and the first two put a note in Stops, so what is left is a declaration that
+// resolved, was classified, and left the catalogue one entry shorter than the
+// run before it, with a zero exit and every skip named.
+//
+// Naming the skips is not enough on its own, which is why this is separate from
+// the report. A server polling the address reads a plugin that has stopped being
+// offered rather than a run log, and decisions/failure-posture.md puts a
+// catalogue that quietly shrank on the fatal side for the same reason it puts an
+// empty one there.
+//
+// One classification reaches this today and it is the one it was written for: a
+// release list in which nothing carries a publication time has no newest
+// release, so every defect in it is a skip and the plugin publishes nothing. No
+// repository in the declared set is in that state, so this refuses fixtures and
+// is expected to go on doing so.
+func JudgeDropped(plans []posture.Plan) error {
+	var dropped []string
+	for _, p := range plans {
+		if len(p.Versions) > 0 || len(p.Stops) > 0 {
+			continue
+		}
+		dropped = append(dropped, fmt.Sprintf(
+			"%s: %d release(s) classified, none publishable and none stopping the run",
+			p.Plugin, len(p.Skips)))
+	}
+	if len(dropped) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%d resolved plugin(s) produced no entry, and a catalogue one entry shorter is not placed: "+
+		"a server reading it shows the operator a plugin that has stopped existing, and the run reports success\n  %s",
+		len(dropped), strings.Join(dropped, "\n  "))
 }
 
 // Judge refuses a catalogue with no entries in it.
