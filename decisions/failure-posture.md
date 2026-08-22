@@ -49,6 +49,15 @@ A version cap, an ordering rule or a byte-format rule that cannot be applied. Th
 are this project's own rules and a run that cannot apply one has a bug rather than
 an input problem.
 
+A run in which a plugin that resolved would contribute no entry. The declaration
+answered, the repository has a finished release, and the catalogue the run is
+about to place is one entry shorter than the one before it. A server polling the
+address reads that as a plugin that has stopped existing, and it is the same
+shape as the empty catalogue below with one plugin instead of all of them, so it
+is fatal for the same reason. Naming the skips in the output does not cover it:
+the output is read by whoever is watching a run and the catalogue is read by
+every server.
+
 ## What is a loud skip
 
 The run continues, publishes what it could resolve, and names every skipped release
@@ -68,6 +77,47 @@ sidecar names the selected archive, and a release where two sidecars name it and
 disagree. All four cases and their reasons are
 `decisions/artifact-checksum-pairing.md`, and this file only places them: on an
 older release they are skips, on the newest one they are fatal.
+
+Every release in a set where none of them carries a publication time. This is the
+case an ordering rule cannot be applied to, and it does not fall on the fatal side
+above, because that sentence reasons from a run that cannot apply one of its own
+rules having a bug. A release list with no times in it is an input rather than a
+bug, and no release in such a set is ever classified as the newest: the only order
+left is the tag, which `decisions/manifest-schema.md` refuses as a version string,
+and taking the highest tag for the newest release would stop the world over a
+release nobody here can repair.
+
+What that leaves is a plugin whose releases were all skipped and which publishes
+nothing, and that is the fatal condition above rather than an acceptable outcome.
+The two land together on purpose. Without the second, this decision converts a
+run that stops too eagerly into a catalogue that loses a plugin quietly with a
+zero exit, and the second of those is the one this file spends its longest
+section on.
+
+No repository in the declared set is in this state:
+
+    for f in sources/*.json; do
+      r=$(basename "$f" .json)
+      printf "%s %s\n" "$r" "$(gh api "repos/Flowfin/jellyfin-plugin-$r/releases?per_page=100" \
+        --jq '[.[] | select(.published_at == null)] | length')"
+    done
+    discover 0
+    invites 0
+    metadata-sync 0
+    requests 0
+    server-pairing 0
+    share-links 0
+    smart-collections 0
+    sso 0
+    stats 0
+    watchlist 0
+    watch-sync 0
+    whisper-subtitles 0
+
+Run 2026-08-22. So this rule refuses fixtures and is expected to go on doing
+so until some upstream repository publishes a release
+list without dates, which means its first real instance will surprise somebody
+and the fixtures are the only thing standing between it and dead code.
 
 A release trimmed by the per-target cap. Named as trimmed rather than as defective,
 because a run that reports it the same way as a broken release teaches everybody to
@@ -128,6 +178,18 @@ found nothing.
 
 ## What refuses a violation
 
-Nothing yet. This file is prose and prose does not stop a run. The conditions above
-become refusals in #24, #25, #27 and #28, and the verdict shape they share is #18.
-Until those land, the posture is a rule the generator does not exist to break.
+`internal/posture` classifies one plugin's releases and `internal/catalogue`
+refuses the run, and which conditions each of them decides is printed by the
+suite rather than listed here, because a list in this file drifts against the
+code that holds it:
+
+    go test ./internal/posture ./internal/catalogue -count=1 -v | grep '^=== RUN'
+
+This section said nothing refused any of it, and named #24, #25, #27, #28 and
+#18 as where the refusals would arrive. All five are closed and their refusals
+are in the tree, so the sentence had stopped being true. It was found while
+adding the two conditions above, which needed to say what refuses them and could
+not do that beside a paragraph claiming nothing does.
+
+What is still prose is the shape of the report, which is a judgement about
+wording that no reading of the tree makes.

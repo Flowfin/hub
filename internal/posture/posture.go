@@ -15,6 +15,12 @@
 // decisions/manifest-schema.md refuses the tag as a version string and there is
 // nothing else in a release list to order by.
 //
+// Where a release list carries no publication time at all, that question has no
+// answer and the classification says so rather than borrowing the tag: nothing
+// in such a set is the newest, so no defect in it stops the run. What that
+// leaves is a plugin that resolved and published nothing, which
+// decisions/failure-posture.md makes fatal one layer up.
+//
 // A skip is never silent. A manifest that is short because releases were skipped
 // and one that is short because there was nothing to add are the same file, and
 // only the output tells them apart.
@@ -112,7 +118,16 @@ func Of(plugin string, releases []sources.Release, fetch pairing.Fetch) Plan {
 		// The first one is the newest for this plugin and channel, which is the
 		// release this run exists to publish. A defect in it stops the run and
 		// the same defect below it does not.
-		newest := i == 0
+		//
+		// A release carrying no publication time is never that one, however far
+		// up the order it landed. Where no release in the set carries a time,
+		// none of newerFirst's clauses fires, the order falls through to the tag
+		// and the highest tag arrives here at index 0 -- which is the tag
+		// answering the question decisions/manifest-schema.md refuses it for.
+		// Nothing in the set is then the newest, every defect in it is a named
+		// skip, and the plugin contributing no entry afterwards is refused by
+		// catalogue.JudgeDropped rather than passing quietly.
+		newest := i == 0 && !ordered[i].Published.IsZero()
 
 		entry, note, err := read(plugin, release, fetch)
 		switch {
