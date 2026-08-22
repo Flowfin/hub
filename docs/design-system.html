@@ -8,7 +8,7 @@
      black ground plus hairline boxes, the look of an old terminal.
      Now brightness carries the separation and the border steps back. */
   --ground:#121216; --raise:#1C1C22; --raise2:#26262E; --line:rgba(255,255,255,.07);
-  --ink:#ECECEF; --ink2:#9C9CA6; --ink3:#6E6E79;
+  --ink:#ECECEF; --ink2:#9C9CA6; --ink3:#8C8C9A;
   --sel:#5B9CFF; --sel-soft:rgba(91,156,255,.16); --ring:3px;
   --lift:0 10px 34px -16px rgba(0,0,0,.8);
   --r:12px; --rs:8px; --maxw:1080px;
@@ -18,16 +18,16 @@
 /* Light is unchanged - it is liked as it is. */
 @media (prefers-color-scheme: light){
   :root{ --ground:#FAFAFA; --raise:#FFFFFF; --raise2:#F0F0F2; --line:#E2E2E6;
-    --ink:#0E0E11; --ink2:#63636B; --ink3:#8E8E96;
+    --ink:#0E0E11; --ink2:#63636B; --ink3:#6D6D73;
     --sel:#0A6CE8; --sel-soft:rgba(10,108,232,.12);
     --lift:0 8px 24px -14px rgba(0,0,0,.16); }
 }
 :root[data-theme="light"]{ --ground:#FAFAFA; --raise:#FFFFFF; --raise2:#F0F0F2; --line:#E2E2E6;
-  --ink:#0E0E11; --ink2:#63636B; --ink3:#8E8E96; --sel:#0A6CE8; --sel-soft:rgba(10,108,232,.12);
+  --ink:#0E0E11; --ink2:#63636B; --ink3:#6D6D73; --sel:#0A6CE8; --sel-soft:rgba(10,108,232,.12);
   --lift:0 8px 24px -14px rgba(0,0,0,.16); }
 :root[data-theme="dark"]{ --ground:#121216; --raise:#1C1C22; --raise2:#26262E;
   --line:rgba(255,255,255,.07);
-  --ink:#ECECEF; --ink2:#9C9CA6; --ink3:#6E6E79; --sel:#5B9CFF; --sel-soft:rgba(91,156,255,.16);
+  --ink:#ECECEF; --ink2:#9C9CA6; --ink3:#8C8C9A; --sel:#5B9CFF; --sel-soft:rgba(91,156,255,.16);
   --lift:0 10px 34px -16px rgba(0,0,0,.8); }
 /* COLOUR VISION PRESETS. Not "colour removed", but "the hue this eye sees
    best". Which one that is depends on which cone type is missing - hence a
@@ -205,8 +205,16 @@ b.k{color:var(--ink);font-weight:600}
       <div class="sw"><i style="background:var(--raise2)"></i><div class="meta"><span class="n">raise-2</span><span class="v">#26262E / #F0F0F2</span></div></div>
       <div class="sw"><i style="background:var(--ink)"></i><div class="meta"><span class="n">ink</span><span class="v">#ECECEF / #0E0E11</span></div></div>
       <div class="sw"><i style="background:var(--ink2)"></i><div class="meta"><span class="n">ink-2</span><span class="v">#9C9CA6 / #63636B</span></div></div>
+      <div class="sw"><i style="background:var(--ink3)"></i><div class="meta"><span class="n">ink-3</span><span class="v">#8C8C9A / #6D6D73</span></div></div>
       <div class="sw"><i style="background:var(--sel)"></i><div class="meta"><span class="n">sel, focus only</span><span class="v">#5B9CFF / #0A6CE8</span></div></div>
     </div>
+    <p class="dim" style="margin-top:22px"><b class="k">What the three ink steps mean.</b> Every
+    one of them clears 4.5:1 against ground, raise and raise-2, in both brightness schemes, and
+    that is checked rather than eyeballed. So the scale is an order of attention and not a fade:
+    ink is what is read first, ink-2 is read after the thing it belongs to, ink-3 is a label or a
+    unit or a year. The step from ink-2 to ink-3 is under one and a quarter of contrast ratio at
+    its widest, so a reader will not see ink-3 recede. Text that is genuinely secondary is made so
+    by size, position and wording; there is no ink step that will do it with colour.</p>
   </div>
 </section>
 

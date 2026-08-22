@@ -6,13 +6,13 @@
       "raise-2": { "dark": { "srgb": "#26262E", "alpha": 1 }, "light": { "srgb": "#F0F0F2", "alpha": 1 } },
       "ink": { "dark": { "srgb": "#ECECEF", "alpha": 1 }, "light": { "srgb": "#0E0E11", "alpha": 1 } },
       "ink-2": { "dark": { "srgb": "#9C9CA6", "alpha": 1 }, "light": { "srgb": "#63636B", "alpha": 1 } },
-      "ink-3": { "dark": { "srgb": "#8C8C9A", "alpha": 1 }, "light": { "srgb": "#6D6D73", "alpha": 1 } }
+      "ink-3": { "dark": { "srgb": "#8A8A98", "alpha": 1 }, "light": { "srgb": "#6F6F75", "alpha": 1 } }
     }
   },
   "focus": {
     "presets": {
       "standard": {
-        "dark": { "accent": { "srgb": "#6B6B6B", "alpha": 1 }, "accent-soft": { "srgb": "#5B9CFF", "alpha": 0.16 } },
+        "dark": { "accent": { "srgb": "#5B9CFF", "alpha": 1 }, "accent-soft": { "srgb": "#5B9CFF", "alpha": 0.16 } },
         "light": { "accent": { "srgb": "#0A6CE8", "alpha": 1 }, "accent-soft": { "srgb": "#0A6CE8", "alpha": 0.12 } }
       }
     }

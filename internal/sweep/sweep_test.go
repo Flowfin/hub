@@ -179,6 +179,45 @@ func TestOneFailurePerWorkflowAndVerdictRatherThanOnePerRun(t *testing.T) {
 	}
 }
 
+func TestAFailureALaterScheduledRunRecoveredFromIsNotSelected(t *testing.T) {
+	watched := []string{".github/workflows/nightly.yml"}
+	failed := run(watched[0], "failure", 18)
+
+	// The failure on its own is what the sweep exists to report, so the filter
+	// below is not one that reports nothing.
+	if got := Select(watched, []Run{failed}, "main"); len(got) != 1 {
+		t.Fatalf("a failure with no later run selected %d failure(s), want 1", len(got))
+	}
+
+	recovered := run(watched[0], "success", 19)
+	if got := Select(watched, []Run{failed, recovered}, "main"); len(got) != 0 {
+		t.Errorf("a failure a later scheduled run recovered from is still selected, so closing its issue raises the same one again: %+v", got)
+	}
+
+	// Three runs that are not a recovery, each for a different reason. A
+	// success before the failure says nothing about it, and a run off the
+	// schedule or off the default branch is outside the population this sweep
+	// reports on at all.
+	for _, c := range []struct {
+		name string
+		in   Run
+	}{
+		{"a success older than the failure", run(watched[0], "success", 17)},
+		{"a success somebody asked for", askedFor(run(watched[0], "success", 20))},
+		{"a success off the default branch", offBranch(run(watched[0], "success", 21))},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if got := Select(watched, []Run{failed, c.in}, "main"); len(got) != 1 {
+				t.Errorf("selected %d failure(s), want 1: %+v", len(got), got)
+			}
+		})
+	}
+}
+
+func askedFor(r Run) Run { r.Event = "workflow_dispatch"; return r }
+
+func offBranch(r Run) Run { r.Branch = "a-branch"; return r }
+
 func TestAFailureAnOpenIssueAlreadyHoldsIsNotRaisedAgain(t *testing.T) {
 	failures := Select(
 		[]string{".github/workflows/nightly.yml"},

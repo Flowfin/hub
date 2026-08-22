@@ -75,6 +75,15 @@ func without(release sources.Release, suffix string) sources.Release {
 	return release
 }
 
+// undated returns the same release with the publication time taken off, which
+// is what the layer below leaves when a response carries none. It is a field
+// this fixture removes rather than a condition it invents, in the same way
+// without() removes an asset.
+func undated(release sources.Release) sources.Release {
+	release.Published = time.Time{}
+	return release
+}
+
 // TestAnUnusableHistoricalReleaseIsSkippedByNameAndTheRestArePublished is the
 // first clause of the Done-when of #28.
 func TestAnUnusableHistoricalReleaseIsSkippedByNameAndTheRestArePublished(t *testing.T) {
@@ -193,6 +202,56 @@ func TestAReleaseWithNoPublicationTimeIsNotTakenForTheNewest(t *testing.T) {
 	}
 	if len(plan.Skips) != 1 || len(plan.Versions) != 1 {
 		t.Fatalf("%d skips and %d versions", len(plan.Skips), len(plan.Versions))
+	}
+}
+
+// TestNoReleaseInTheSetCarriesAPublicationTime pins the answer #114 was
+// decided with: where nothing in the set can be placed in time, nothing in it is
+// the newest, so a defect anywhere in it is a named skip rather than a stop.
+//
+// Both releases are defective and both are undated, so the outcome does not turn
+// on which of them the tag order happened to put first. Reading the tag as the
+// order instead is what this refuses, and the tag is the string
+// decisions/manifest-schema.md refuses as a version.
+func TestNoReleaseInTheSetCarriesAPublicationTime(t *testing.T) {
+	w := world{}
+	higher := undated(without(published(w, "2.0.0-stable", 30, "2.0.0.0", "10.11.0.0"), ".zip.md5sum"))
+	lower := undated(without(published(w, "1.0.0-stable", 10, "1.0.0.0", "10.11.0.0"), ".zip.md5sum"))
+
+	plan := Of("a-plugin", []sources.Release{higher, lower}, w.fetch)
+
+	if len(plan.Stops) != 0 {
+		t.Fatalf("a release nothing could place in time stopped the run: %v", plan.Stops)
+	}
+	if len(plan.Versions) != 0 {
+		t.Fatalf("a defective release was published: %+v", plan.Versions)
+	}
+	if len(plan.Skips) != 2 {
+		t.Fatalf("the run named %d of the 2 releases it skipped: %v", len(plan.Skips), plan.Skips)
+	}
+	for _, skip := range plan.Skips {
+		if skip.Condition != "no-usable-sidecar" {
+			t.Errorf("%s carries condition %q", skip.Release, skip.Condition)
+		}
+	}
+	if err := Judge([]Plan{plan}); err != nil {
+		t.Errorf("a set of named skips stopped the run: %v", err)
+	}
+}
+
+// TestOneDatedReleaseInTheSetIsStillTheNewest is the near-miss beside the test
+// above. The rule is about a set nothing can order, not about the undated
+// release, so one dated release is enough to make the question answerable again
+// and a defect in it is fatal as before.
+func TestOneDatedReleaseInTheSetIsStillTheNewest(t *testing.T) {
+	w := world{}
+	dated := without(published(w, "1.0.0-stable", 10, "1.0.0.0", "10.11.0.0"), ".zip.md5sum")
+	higherTag := undated(published(w, "2.0.0-stable", 30, "2.0.0.0", "10.11.0.0"))
+
+	plan := Of("a-plugin", []sources.Release{higherTag, dated}, w.fetch)
+
+	if len(plan.Stops) != 1 || plan.Stops[0].Release != "1.0.0-stable" {
+		t.Fatalf("the one release that could be placed in time was not the newest: %v %v", plan.Stops, plan.Skips)
 	}
 }
 

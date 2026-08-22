@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"flowfin.dev/hub/internal/pairing"
+	"flowfin.dev/hub/internal/posture"
 	"flowfin.dev/hub/internal/publish"
 	"flowfin.dev/hub/internal/sources"
 	"flowfin.dev/hub/manifest"
@@ -130,6 +131,14 @@ func without(release sources.Release, suffix string) sources.Release {
 		kept = append(kept, a)
 	}
 	release.Assets = kept
+	return release
+}
+
+// undated returns the same release with the publication time taken off, which
+// is what internal/sources leaves when a response carries none. A field removed
+// rather than a condition invented, in the same way without() removes an asset.
+func undated(release sources.Release) sources.Release {
+	release.Published = time.Time{}
 	return release
 }
 
@@ -453,6 +462,66 @@ func TestTheLocationIsChangedWithoutTouchingWhatProducesTheBytes(t *testing.T) {
 
 // TestAnEmptyCatalogueIsRefusedRatherThanPlaced is the guard the package comment
 // says no run reaches today. It is judged here, where the state can be made.
+// TestARunThatWouldDropAResolvedPluginIsRefusedRatherThanPlaced is the second
+// half of #114, and the catalogue carries a second plugin that publishes
+// perfectly so that the failure it refuses is the live one rather than the empty
+// catalogue Judge already refuses.
+//
+// The dropped plugin resolves, both of its releases are defective, and neither
+// carries a publication time, so nothing in its set is the newest and both
+// defects are skips. Before this rule the run placed one entry, exited zero, and
+// the address answered with a catalogue the first plugin had disappeared from.
+func TestARunThatWouldDropAResolvedPluginIsRefusedRatherThanPlaced(t *testing.T) {
+	w := world{}
+	l := listing{
+		"an-account/jellyfin-plugin-a-plugin": []sources.Release{
+			undated(without(published(w, "a-plugin", "2.0.0-stable", 20, "2.0.0.0", "A Plugin"), ".zip.md5sum")),
+			undated(without(published(w, "a-plugin", "1.0.0-stable", 10, "1.0.0.0", "A Plugin"), ".zip.md5sum")),
+		},
+		"an-account/jellyfin-plugin-another-plugin": []sources.Release{
+			published(w, "another-plugin", "1.0.0-stable", 10, "1.0.0.0", "Another Plugin"),
+		},
+	}
+	route, _ := routeInto(t, l, w)
+
+	var out strings.Builder
+	err := route.Publish(context.Background(), &out, declaring(t, "a-plugin", "another-plugin"))
+	if err == nil {
+		t.Fatalf("a plugin was dropped from the catalogue and the run exited zero:\n%s", out.String())
+	}
+	if !strings.Contains(err.Error(), "a-plugin") {
+		t.Errorf("the refusal does not name the plugin that was dropped: %v", err)
+	}
+	if _, statErr := os.Stat(route.Target.Path(route.Root)); statErr == nil {
+		t.Fatalf("a run that would have lost a plugin placed a file:\n%s", placedBytes(t, route))
+	}
+	// The skips are still named, which is the half the report owes and the
+	// reason the refusal is a separate rule rather than a louder report.
+	for _, phrase := range []string{"skipped", "2.0.0-stable", "no-usable-sidecar"} {
+		if !strings.Contains(out.String(), phrase) {
+			t.Errorf("the run output does not name the skip with %q:\n%s", phrase, out.String())
+		}
+	}
+}
+
+// TestAPluginThatPublishesSomethingIsNotReadAsDropped is the near-miss beside
+// it. JudgeDropped reads a plan that produced nothing, so a plan that produced
+// one entry out of two releases has to pass it, and that is the ordinary state
+// of every run today.
+func TestAPluginThatPublishesSomethingIsNotReadAsDropped(t *testing.T) {
+	w := world{}
+	good := published(w, "a-plugin", "2.0.0-stable", 20, "2.0.0.0", "A Plugin")
+	bad := without(published(w, "a-plugin", "1.0.0-stable", 10, "1.0.0.0", "A Plugin"), ".zip.md5sum")
+
+	plans := []posture.Plan{posture.Of("a-plugin", []sources.Release{good, bad}, w.fetch)}
+	if len(plans[0].Versions) != 1 || len(plans[0].Skips) != 1 {
+		t.Fatalf("the fixture does not produce one entry and one skip: %+v", plans[0])
+	}
+	if err := JudgeDropped(plans); err != nil {
+		t.Fatalf("a plugin that published a version was read as dropped: %v", err)
+	}
+}
+
 func TestAnEmptyCatalogueIsRefusedRatherThanPlaced(t *testing.T) {
 	if err := Judge(nil); err == nil {
 		t.Fatal("a catalogue with nothing in it was accepted")
