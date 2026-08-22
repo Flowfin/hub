@@ -226,16 +226,47 @@ func (f Failure) Key() string { return f.Workflow + " " + f.Conclusion }
 
 // Select reduces the runs to the distinct failures worth raising.
 //
-// Three filters, and each of them is a way this would otherwise be noise. Only
+// Four filters, and each of them is a way this would otherwise be noise. Only
 // a watched workflow, so a run of something nobody scheduled is not swept up.
 // Only the schedule event, because a run somebody asked for has somebody
 // looking at it and this exists for the runs nobody asked for. Only the default
 // branch, because a scheduled run is a run of that branch and anything else
 // arriving here is a fact about the reader rather than about the tree.
+//
+// And only a failure no later scheduled run has recovered from. The question
+// this package asks is whether the thing is failing now, which is the same
+// question the window in github.go is sized for, and the raised issue says so
+// in its own words: it closes on a run of the same workflow ending in success.
+// Without this filter the failure stays selectable for as long as it is in the
+// window, so the issue is raised again on the next sweep after it is closed,
+// under the same key, and the loop ends when the failure scrolls out rather
+// than when anything is fixed. A recovery is a scheduled run of the default
+// branch, because those are the runs this reports on; a run somebody asked for
+// has somebody in front of it and clears nothing here.
+//
+// The recovery cannot be outside the window while the failure is inside it,
+// because the window holds the newest runs and the recovery is the newer of
+// the two.
 func Select(watched []string, runs []Run, defaultBranch string) []Failure {
 	inSet := map[string]bool{}
 	for _, w := range watched {
 		inSet[w] = true
+	}
+
+	// The newest run of each watched workflow that reported the schedule
+	// working again. Run numbers are per workflow and increase, so this is the
+	// line a failure has to be newer than to still be worth raising.
+	recovered := map[string]int{}
+	for _, r := range runs {
+		switch {
+		case !inSet[r.Workflow], r.Event != "schedule", r.Branch != defaultBranch:
+			continue
+		case !r.Ended(), r.Conclusion != "success":
+			continue
+		}
+		if r.Number > recovered[r.Workflow] {
+			recovered[r.Workflow] = r.Number
+		}
 	}
 
 	grouped := map[string]*Failure{}
@@ -244,6 +275,8 @@ func Select(watched []string, runs []Run, defaultBranch string) []Failure {
 		case !inSet[r.Workflow], r.Event != "schedule", r.Branch != defaultBranch:
 			continue
 		case !r.Ended(), r.Conclusion == "success":
+			continue
+		case r.Number <= recovered[r.Workflow]:
 			continue
 		}
 
