@@ -8,6 +8,11 @@
 # Nothing here blocks a merge. decisions/headless-and-unelevated.md says the gate
 # never depends on this file, and the gate's own report says on every run that
 # none of these ran, so a green gate is not read as a green harness.
+#
+# One job elevates and the rest do not. needs-browser runs a single privileged
+# command, with the reason beside it in that job, because Chrome will not start
+# on this image otherwise. The unelevated rule that file states is about the
+# gate, and no leg of the gate reaches anything here.
 name: Harness
 
 on:
@@ -69,6 +74,35 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      # Chrome puts every renderer in a namespace sandbox, and building that
+      # sandbox needs an unprivileged user namespace. The runner image restricts
+      # those with AppArmor, so the browser does not start without isolation, it
+      # refuses to start at all:
+      #
+      #   FATAL:content/browser/zygote_host/zygote_host_impl_linux.cc:128]
+      #   No usable sandbox!
+      #
+      # The line below lifts that one restriction, on this runner, for the length
+      # of this job, on a machine that is destroyed when the job ends. The
+      # browser keeps its own sandbox. The alternative is a flag that turns that
+      # sandbox off instead, which would follow the check onto every machine it
+      # ever ran on, a contributor's workstation included, so the weakening is
+      # scoped to a throwaway runner rather than travelling with the test.
+      #
+      # It is the only privileged command in this file and it stays inside this
+      # job. A second job needing a browser gets the same step and the same
+      # reason rather than the setting moving somewhere it applies to everything.
+      #
+      # It goes when the image stops needing it, and that is read rather than
+      # guessed: the step prints the setting before it changes it, and the day
+      # that line already reads 0 is the day the step is deleted.
+      #
+      # `sudo -n` never prompts. It fails rather than asking, which is the same
+      # reason gate.yml gives for asking about elevation in a job at all.
+      - name: Allow the unprivileged user namespace Chrome's sandbox is built from
+        run: |
+          sysctl -n kernel.apparmor_restrict_unprivileged_userns
+          sudo -n sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: go run . harness needs-browser
 
   needs-jellyfin:

@@ -99,11 +99,18 @@ func CheckFile(name string, content []byte) []Finding {
 	return findings
 }
 
-// tabIndented says whether .editorconfig indents this path with tabs. Go is the
-// only such type in the tree, because gofmt indents with tabs and rewriting it
-// would be a fight with the toolchain's own formatter rather than a style.
+// tabIndented says whether .editorconfig indents this path with tabs.
+//
+// Two cases, and both are the same argument rather than two exceptions. gofmt
+// indents Go with tabs, and the module file's require block is written by the
+// go command with tabs. Both are files a tool rewrites on its own, so a rule
+// that indented them with spaces would be refused again by the next command
+// anybody ran, and the check would be measuring who ran what last.
+//
+// go.sum has no indentation at all and is not here for that reason rather than
+// by omission.
 func tabIndented(name string) bool {
-	return filepath.Ext(name) == ".go"
+	return filepath.Ext(name) == ".go" || filepath.Base(name) == "go.mod"
 }
 
 // TrackedFiles returns the paths git tracks under root, so an untracked scratch

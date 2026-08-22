@@ -115,3 +115,18 @@ func TestTrackedTreeIsFormatted(t *testing.T) {
 		t.Logf("%d tracked file(s) checked", len(paths))
 	}
 }
+
+func TestCheckFileAllowsATabIndentInTheModuleFile(t *testing.T) {
+	// The go command writes the require block with tabs and rewrites the file on
+	// its own, so a rule refusing that would be undone by the next `go get`
+	// anybody ran and the check would be measuring who ran what last.
+	mod := "module m\n\ngo 1.25\n\nrequire (\n\tx v1.0.0\n)\n"
+	if findings := CheckFile("go.mod", []byte(mod)); len(findings) != 0 {
+		t.Fatalf("refused %v, and the go command indents the require block with tabs", findings)
+	}
+	// The name is matched whole rather than as a substring, so a file that
+	// merely carries it is still held to the rule.
+	if findings := CheckFile("docs/go.mod.md", []byte("\tindented prose\n")); len(findings) != 1 {
+		t.Fatalf("refused %v over a file whose name only contains go.mod, want exactly one finding", findings)
+	}
+}
