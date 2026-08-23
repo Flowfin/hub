@@ -93,16 +93,32 @@ published nothing and the declaration switched off for the first publication are
 `decisions/first-release.md`, and they are absent by decision rather than by
 failure.
 
-Two tracked files printed the address, and #35 removed both:
+Two tracked files printed the address, and #35 removed both. What follows is the
+reading taken that day rather than the state of the tree:
 
     grep -rno 'https://[a-zA-Z0-9./_-]*manifest.json' -- README.md docs/ ; echo "exit=$?"
     exit=1
 
 Run 2026-08-08. Nothing was printed and the grep exited 1. What the
 operator-facing files said instead was that installation is not available yet,
-which was what an address answering 404 left them able to say. Now that the entry
-exists they may print the address, and whether they do is the instruction in #55
-rather than this rule.
+which was what an address answering 404 left them able to say.
+
+The same command answers with five sites now, and those five are the operator
+instruction:
+
+    grep -rno 'https://[a-zA-Z0-9./_-]*manifest.json' -- README.md docs/ ; echo "exit=$?"
+    README.md:17:https://flowfin.dev/manifest.json
+    README.md:54:https://flowfin.dev/manifest.json
+    README.md:63:https://flowfin.dev/manifest.json
+    README.md:73:https://flowfin.dev/manifest.json
+    docs/index.html:31:https://flowfin.dev/manifest.json
+    exit=0
+
+Run 2026-08-23 against the tree at 1f88020. The first is the address in the
+three-step instruction, the three below it are inside the commands an operator
+runs when the repository looks empty, and the fifth is the same address on the
+served page. Printing them is what the entry in `internal/address.Answered` made
+permissible, and it is written rather than still to be decided.
 
 The 404 pair stays here because this is where the address is argued, and a
 superseded reading is worth more in place than deleted: it is the pair that
@@ -142,8 +158,9 @@ That check returned early for as long as the list was empty, and it says so on
 its own output rather than passing quietly. With an entry it makes the request,
 so the day the entry landed is the day the check began reading anything at all.
 
-The operator instruction that prints the address is the other half of #34. The
-list is no longer what stands in front of it.
+The operator instruction that prints the address was the other half of #34. It is
+written, the five sites above are it, and the list stopped standing in front of
+it on the day the entry landed.
 
 ## What this costs
 
