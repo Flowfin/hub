@@ -16,9 +16,10 @@
 // waited on it would be a merge waiting on a certificate, a DNS record and
 // somebody else's uptime.
 //
-// The Answered list below is what joins the two halves, and it is empty. Adding
-// an entry is the act that requires the measurement, and the harness is what
-// keeps the entry honest afterwards.
+// The Answered list below is what joins the two halves, and it carries one
+// address. The entry is what lets a tracked file print it, adding one is the act
+// that requires the measurement, and the harness is what keeps the entry honest
+// afterwards.
 package address
 
 import (
@@ -36,22 +37,31 @@ import (
 // with the manifest they promise. An address here may appear in a tracked file;
 // one that is not here may not.
 //
-// It is empty, and that is the state of the world rather than a placeholder:
+// It carries one, and this is the reading behind it:
 //
-//	curl -sS -o /dev/null -w "%{http_code}\n" https://flowfin.dev/
-//	200
 //	curl -sS -o /dev/null -w "%{http_code}\n" https://flowfin.dev/manifest.json
-//	404
+//	200
 //
-// Recorded in decisions/manifest-address.md and run 2026-08-08 against the tree
-// at 6a98de6. The name resolves and the site answers; the address an operator
-// would paste does not, and the decision refuses a rule written against DNS
-// alone for exactly that reason.
+//	curl -sS -o served.json https://flowfin.dev/manifest.json
+//	git show origin/main:docs/manifest.json | cmp - served.json && echo identical
+//	identical
 //
-// What adding an entry costs: the request above, its output written where the
+// Recorded in decisions/manifest-address.md and run 2026-08-23 against the tree
+// at 514c771. A status code on its own would not carry the entry: a holding page
+// answers 200 as readily as a catalogue does, and a Jellyfin server renders both
+// as an empty repository, so what is written down is that the bytes served are
+// the catalogue this tree holds.
+//
+// This comment said the list was empty and that the address answered 404. Both
+// were the state of the world on 2026-08-08 at 6a98de6, and both stopped being it
+// when the generated catalogue was landed and the host rebuilt from it. The pair
+// of requests that recorded the 404 stays in decisions/manifest-address.md, where
+// a superseded reading is argued rather than deleted.
+//
+// What adding an entry cost: the requests above, their output written where the
 // address is argued, and this list changed in the same commit. What it buys is
 // that the instruction may then be written, which is the other half of #34.
-var Answered = []string{}
+var Answered = []string{"https://flowfin.dev/manifest.json"}
 
 // Finding is one refusal.
 type Finding struct {
