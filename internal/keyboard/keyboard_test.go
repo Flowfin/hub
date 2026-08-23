@@ -20,7 +20,7 @@ func TestTheServedPagesDeclareTheControlsAKeyboardHasToReach(t *testing.T) {
 	// The expectation the browser side is measured against, read here so that a
 	// scan which quietly stopped finding anything is a failure in the gate
 	// rather than an empty comparison the harness reports as clean.
-	want := map[string]int{"docs/index.html": 1, "docs/design-system.html": 14}
+	want := map[string]int{"docs/index.html": 2, "docs/design-system.html": 14}
 	for _, page := range Pages {
 		got, err := Interactive(read(t, page))
 		if err != nil {
