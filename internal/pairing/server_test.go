@@ -57,7 +57,7 @@ const AddressVariable = "JELLYFIN_ADDRESS"
 const (
 	readyWindow   = 3 * time.Minute
 	catalogueWait = 2 * time.Minute
-	installWindow = 3 * time.Minute
+	installWindow = 2 * time.Minute
 	pollEvery     = 2 * time.Second
 )
 
@@ -110,6 +110,14 @@ func TestAServerInstallsFromThePublishedCatalogueAndRefusesAMismatchedChecksum(t
 	name, guid := onePlugin(t, catalogue)
 	t.Logf("plugin under test: %s (%s)", name, guid)
 
+	// The three halves run in this order and the order is the argument. The
+	// mismatched checksum runs first, so nothing has installed yet and a plugin
+	// that is absent afterwards is absent because the install was refused. The
+	// same catalogue with its own checksum runs second, over the same server,
+	// the same address and the same archive, so it is the one-change neighbour
+	// of the half above: it is what separates a checksum the server refused from
+	// an address it could not use. The published address runs last, on a server
+	// the half before it left clean again.
 	t.Run("a mismatched checksum refuses the install", func(t *testing.T) {
 		s := s.with(t)
 
@@ -119,7 +127,20 @@ func TestAServerInstallsFromThePublishedCatalogueAndRefusesAMismatchedChecksum(t
 
 		s.setRepositories(ctx, repository{Name: "harness-damaged", URL: served, Enabled: true})
 		s.waitForCatalogueEntry(ctx, name)
-		s.install(ctx, name, served)
+
+		// Either spelling of the refusal is the refusal. The server may answer
+		// the request itself, or accept it and refuse while it hashes what it
+		// downloaded, and which of the two it does is the server's business
+		// rather than this check's. What may not happen is the plugin arriving.
+		status, body, err := s.call(ctx, http.MethodPost, installPath(name, served), nil)
+		if err != nil {
+			t.Fatalf("asking the server to install %s: %v", name, err)
+		}
+		if status < 200 || status > 299 {
+			t.Logf("the server refused the request itself, %d: %s", status, excerpt(body))
+		} else {
+			t.Logf("the server accepted the request, %d; what it does with the archive decides the rest", status)
+		}
 
 		if installed, waited := s.pluginAppears(ctx, guid, installWindow); installed {
 			t.Fatalf("the server installed %s after %s from a manifest whose checksum belongs to no archive. "+
@@ -127,6 +148,33 @@ func TestAServerInstallsFromThePublishedCatalogueAndRefusesAMismatchedChecksum(t
 				"mismatch would install silently.", name, waited)
 		}
 		t.Logf("after %s the server has not installed %s, which is the refusal this half is for", installWindow, name)
+	})
+
+	t.Run("the same catalogue with its own checksum installs", func(t *testing.T) {
+		s := s.with(t)
+
+		intact, err := json.Marshal(catalogue)
+		if err != nil {
+			t.Fatalf("encoding the published catalogue to serve it back: %v", err)
+		}
+		served := serveCatalogue(t, s.base, intact)
+		t.Logf("serving the published catalogue unchanged at %s", served)
+
+		s.setRepositories(ctx, repository{Name: "harness-intact", URL: served, Enabled: true})
+		s.waitForCatalogueEntry(ctx, name)
+		s.install(ctx, name, served)
+
+		installed, waited := s.pluginAppears(ctx, guid, installWindow)
+		if !installed {
+			t.Fatalf("the server did not install %s within %s from a catalogue differing from the half above "+
+				"in one field. Without this the refusal above is not evidence about the checksum: it would sit "+
+				"equally well with a server that could not use an address of this shape at all.", name, installWindow)
+		}
+		t.Logf("the server installed %s after %s, one field away from the manifest it refused", name, waited)
+
+		// The half below has to watch an install arrive, so it needs a server
+		// that has not already got the plugin.
+		s.uninstall(ctx, guid)
 	})
 
 	t.Run("the published catalogue installs", func(t *testing.T) {
@@ -364,42 +412,87 @@ func (s *server) waitForCatalogueEntry(ctx context.Context, name string) {
 		"what an operator is shown for an address that answers with nothing at all.", name, catalogueWait, seen)
 }
 
+// installPath is where an install is asked for, naming the repository so the
+// request cannot be answered out of another one the server happens to hold.
+func installPath(name, repositoryURL string) string {
+	return "/Packages/Installed/" + url.PathEscape(name) + "?repositoryUrl=" + url.QueryEscape(repositoryURL)
+}
+
 // install asks the server to install the plugin from one repository.
 //
-// The answer says the request was accepted and never that the install
-// succeeded: the server downloads, verifies and installs afterwards, which is
-// why both halves of this check read the plugin list rather than this status.
+// A 2xx says the request was accepted and never that the install succeeded: the
+// server downloads, verifies and installs afterwards, which is why every half of
+// this check reads the plugin list rather than this status.
 func (s *server) install(ctx context.Context, name, repositoryURL string) {
 	s.t.Helper()
-	path := "/Packages/Installed/" + url.PathEscape(name) + "?repositoryUrl=" + url.QueryEscape(repositoryURL)
-	s.must(ctx, http.MethodPost, path, nil)
+	s.must(ctx, http.MethodPost, installPath(name, repositoryURL), nil)
 	s.t.Logf("the server accepted the install request for %s from %s", name, repositoryURL)
 }
 
-// pluginAppears polls the installed plugin list for the guid and says how long
-// it waited, so a negative result carries the length of the wait behind it.
+// uninstall removes the plugin again and refuses to carry on until the server
+// says it is gone.
+//
+// It is not tidiness. The half after it watches an install arrive, and a server
+// that already holds the plugin would report the same green over an install that
+// never happened, which is the one reading this whole check exists against.
+func (s *server) uninstall(ctx context.Context, guid string) {
+	s.t.Helper()
+	s.must(ctx, http.MethodDelete, "/Plugins/"+url.PathEscape(guid), nil)
+	deadline := time.Now().Add(installWindow)
+	for time.Now().Before(deadline) {
+		present, _, err := s.pluginPresent(ctx, guid)
+		if err == nil && !present {
+			s.t.Log("the server no longer holds the plugin, so the half below watches a real install")
+			return
+		}
+		sleep(ctx, pollEvery)
+	}
+	s.t.Fatalf("the server still holds %s after being asked to remove it, so the half below could not tell an "+
+		"install that arrived from one that was already there", guid)
+}
+
+// pluginPresent reads the installed plugin list once and says whether the guid
+// is in it.
+//
+// A list this run could not read is not an absence. It is returned as an error
+// so that a waiter goes round again and a checker fails, rather than both of
+// them reading a failed request as the plugin not being there.
+func (s *server) pluginPresent(ctx context.Context, guid string) (bool, string, error) {
+	status, body, err := s.call(ctx, http.MethodGet, "/Plugins", nil)
+	if err != nil {
+		return false, "", err
+	}
+	if status != http.StatusOK {
+		return false, "", fmt.Errorf("the plugin list answered %d: %s", status, excerpt(body))
+	}
+	var plugins []struct {
+		ID     string `json:"Id"`
+		Name   string `json:"Name"`
+		Status string `json:"Status"`
+	}
+	if err := json.Unmarshal(body, &plugins); err != nil {
+		return false, "", fmt.Errorf("the server's plugin list is not readable: %w: %s", err, excerpt(body))
+	}
+	want := normaliseGUID(guid)
+	for _, p := range plugins {
+		if normaliseGUID(p.ID) == want {
+			return true, p.Status, nil
+		}
+	}
+	return false, "", nil
+}
+
+// pluginAppears waits for the plugin to arrive and says how long it waited, so a
+// negative result carries the length of the wait behind it.
 func (s *server) pluginAppears(ctx context.Context, guid string, within time.Duration) (bool, time.Duration) {
 	s.t.Helper()
 	started := time.Now()
 	deadline := started.Add(within)
-	want := normaliseGUID(guid)
 	for time.Now().Before(deadline) {
-		status, body, err := s.call(ctx, http.MethodGet, "/Plugins", nil)
-		if err == nil && status == http.StatusOK {
-			var plugins []struct {
-				ID     string `json:"Id"`
-				Name   string `json:"Name"`
-				Status string `json:"Status"`
-			}
-			if err := json.Unmarshal(body, &plugins); err != nil {
-				s.t.Fatalf("the server's plugin list is not readable: %v: %s", err, excerpt(body))
-			}
-			for _, p := range plugins {
-				if normaliseGUID(p.ID) == want {
-					s.t.Logf("the server reports %s installed, status %s", p.Name, p.Status)
-					return true, time.Since(started).Round(time.Second)
-				}
-			}
+		present, state, err := s.pluginPresent(ctx, guid)
+		if err == nil && present {
+			s.t.Logf("the server reports the plugin installed, status %s", state)
+			return true, time.Since(started).Round(time.Second)
 		}
 		sleep(ctx, pollEvery)
 	}
