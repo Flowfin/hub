@@ -1,0 +1,21 @@
+[
+    {
+        "guid": "0f9c9107-b31b-459e-81fa-6d35dac25e79",
+        "name": "Requests",
+        "description": "A user who cannot find something asks for it from inside Jellyfin rather than through a message to whoever runs the server. The ask lands in a queue an administrator works through, and the person who asked can see what happened to it.\nThis is not finished and there is no release yet. The tree holds the plugin shell and one data model. Installing it today adds nothing a user can see.",
+        "overview": "A user asks the server for a film or a series, an administrator answers it in a queue. Under development.",
+        "owner": "Flowfin",
+        "category": "General",
+        "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-requests/master/img/logo.png",
+        "versions": [
+            {
+                "version": "0.1.0.0",
+                "changelog": "changelog",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-requests/releases/download/0.1.0.0-stable/requests_0.1.0.0.zip",
+                "checksum": "1167d5e454c800bc024d98a6899cdb4c",
+                "timestamp": "2026-08-08T09:39:09Z"
+            }
+        ]
+    }
+]
