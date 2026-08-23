@@ -7,20 +7,94 @@ Flowfin is not affiliated with the Jellyfin project.
 
 ## Installing the plugins
 
-Not yet possible. No manifest is published, so there is nothing to paste into a
-Jellyfin server. `decisions/manifest-address.md` is the rule an address has to
-meet before it may be printed in this tree, and it carries the request showing
-what the intended one answers today.
+Three steps.
 
-The address is settled, name included, and it is served from a domain this
-organisation holds rather than from a `github.io` address, so the hosting and
-even the account behind it can change later without breaking a single
-installation. A manifest URL that moves breaks every install silently: no error,
-the plugins simply never update again. That was entry 2 of #1 and it is answered.
+1. In your server's **Dashboard**, open **Plugins** and then the
+   **Repositories** tab.
+2. Add a repository. **Repository Name** is yours to choose and is only a label.
+   **Repository URL** is this, exactly:
 
-What is missing is the file, not the name. The domain answers and the manifest
-does not, so there is still nothing worth pasting, and this section says so until
-there is.
+       https://flowfin.dev/manifest.json
+
+   Jellyfin warns before it accepts a repository that is not its own, and the
+   warning is worth reading rather than clicking past: a third-party repository
+   may hold unstable or malicious code and may change at any time. That is true
+   of this one as much as of any other. What can be said for it is that the file
+   is [generated from the plugin releases](decisions/manifest-is-generated.md)
+   rather than written by hand, and that every entry names the repository its
+   archive was downloaded from, so anything offered here can be read at its
+   source before it is installed.
+3. Go back to the plugin list. What this repository offers appears there beside
+   whatever the server already had.
+
+What it offers today is one plugin, `Requests`, and that plugin's own entry says
+it is under development and adds nothing a user can see yet. One entry is what
+this address serves rather than a catalogue that failed to load, and telling
+those two apart is the next section.
+
+The address itself is served from a domain this project holds rather than from a
+`github.io` name, so the hosting and even the account behind it can change later
+without breaking a single installation. An address that moves breaks every
+install silently: no error, the plugins simply never update again.
+
+### When the list is empty
+
+A Jellyfin server says nothing when a plugin repository does not work. It shows
+an empty list, and it shows the same empty list for three different problems.
+None of the three produces an error message anywhere, so the list on its own says
+nothing about which one it is.
+
+Run these on the machine the server runs on rather than on the machine you are
+reading this from. A server behind a firewall, or on a network with a resolver of
+its own, can fail all three while your laptop succeeds, and nothing in the
+interface shows that difference.
+
+**Whether the address answers at all.**
+
+    curl -sS -o /dev/null -w "%{http_code}\n" https://flowfin.dev/manifest.json
+    200
+
+`200` is the answer to want. Any other number, or an error from curl instead of a
+number, means that machine cannot reach the address, and the problem is between
+it and the network rather than in Jellyfin or in the file.
+
+**Whether what comes back is a catalogue.**
+
+    curl -sS https://flowfin.dev/manifest.json | python3 -m json.tool > /dev/null ; echo "exit=$?"
+    exit=0
+
+Silence and a zero exit mean it parsed. An error means something answered with
+bytes no server can read as a catalogue, which is what a captive portal, a
+filtering proxy and a cached error page each produce with a `200` in front of
+them.
+
+**Whether anything in it fits your server.**
+
+    curl -sS https://flowfin.dev/manifest.json \
+      | python3 -c "import json,sys; [print(p['name'], v['version'], 'needs', v['targetAbi'], 'or newer') for p in json.load(sys.stdin) for v in p['versions']]"
+    Requests 0.1.0.0 needs 10.11.0.0 or newer
+
+Every version entry names the oldest Jellyfin it will install into, and your
+server's own version is on its dashboard. A server older than every line that
+command prints sees an empty list, and that is the catalogue working rather than
+failing: the entries are there and none of them fits.
+
+Check them in that order. The first is the one that is wrong most often and the
+cheapest to answer, and a failure at any of the three makes the two after it
+unreadable.
+
+### How long a new version takes to appear
+
+The catalogue is rebuilt from the plugin releases once a day, and a rebuild can
+also be asked for on the day a release lands. That is the half of the answer with
+a number on it.
+
+The other half has none, and inventing one would be promising something this
+project does not control: the rebuilt file still has to reach the address, and
+the host that serves these pages publishes on its own timing. So the honest
+answer is a day for a release to be picked up, plus a publication that is usually
+short and is not guaranteed. A version you know exists and that has not appeared
+a day later is worth asking about rather than waiting out.
 
 ## What is here
 

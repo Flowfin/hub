@@ -26,8 +26,18 @@ footer{margin-top:44px;font-size:13.5px;color:var(--i2)}
   nothing visibly waiting.</p>
   <div class="box">
     <h2>Installing plugins</h2>
-    <p>Not possible yet. No address has been published that can be entered in
-    Jellyfin. As soon as there is one, it will be here.</p>
+    <p>In your server's dashboard, open Plugins and then Repositories, and add
+    one. The name is yours to choose. The address is
+    <code>https://flowfin.dev/manifest.json</code>.</p>
+    <p>One plugin is listed today, and it says on its own entry that it is under
+    development. That is worth knowing before an empty-looking list is read as a
+    fault: a Jellyfin server shows the same empty list for an address it cannot
+    reach, for one that answers with something it cannot read, and for a
+    catalogue whose entries all want a newer server, and it reports no error in
+    any of the three.
+    <a href="https://github.com/Flowfin/hub#when-the-list-is-empty">The commands
+    that tell those apart</a> are three, and they are run on the machine the
+    server runs on rather than on the one you are reading this from.</p>
   </div>
   <div class="box">
     <h2>What a server sends</h2>
