@@ -52,8 +52,23 @@ it.
 Naming these is most of the value, because the hand steps are the ones done
 differently the second time.
 
-Running the publication. Nothing schedules it today; #32 is where a schedule and
-a run that cannot race itself are decided.
+Deciding that a run's verdict calls for a merge, and asking for a run when a
+release lands between the scheduled ones. Starting the publication is not the
+hand step here. `.github/workflows/publish.yml` declares a daily schedule, a
+request trigger, and a concurrency group naming the destination so that two runs
+never write one file. What such a run leaves is a verdict and nothing else: its
+permissions are read-only, none of its three steps pushes, and its checkout goes
+with the runner. So `wrote new bytes` on the default branch is the sentence
+saying the published catalogue no longer matches what the declarations come to
+and a merge is owed, and reading that, then producing the bytes the request
+below carries, is the part that stayed a person's.
+
+The sentence that stood at this entry until this correction is superseded rather
+than deleted. It said the publication had no schedule, and it sent a reader to
+#32 as the place where a schedule and a run that could not race itself were
+still being decided. #32 was answered on 2026-08-20 and the workflow file above
+carries both, so what that sentence pointed forward to has arrived and what is
+left by hand here is the paragraph above rather than starting the run.
 
 Opening the pull request that carries the placed file, and merging it. This is
 the same route as any other change and it has the same gate in front of it.
