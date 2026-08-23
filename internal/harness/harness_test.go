@@ -127,6 +127,78 @@ func TestEveryHarnessJobRunsTheEntryPointForItsOwnRequirement(t *testing.T) {
 	}
 }
 
+func TestEveryJobSuppliesWhatItsRequirementSaysIsHandedIn(t *testing.T) {
+	// The gap this closes was found by writing a job that names a requirement
+	// and delivers half of what it needs. Such a job reports under the
+	// requirement's own name, carries the correct one-line step, and starts a
+	// check that refuses because the environment it was promised is not there.
+	// Every other reader here passes it, and the red it produces reads like a
+	// broken check rather than a job that forgot a line.
+	//
+	// What this cannot see is the other half. A job that sets the address and
+	// never starts the thing at that address passes this, because a step
+	// bringing a server up has no shape a reader of this file could recognise.
+	// That half is caught by the check refusing, which is why the check refuses
+	// on an unusable environment rather than skipping.
+	f, err := os.Open(root + WorkflowPath)
+	if err != nil {
+		t.Fatalf("opening the harness workflow: %v", err)
+	}
+	defer f.Close()
+
+	supplied, err := SuppliedIn(f)
+	if err != nil {
+		t.Fatalf("reading what the jobs in %s supply: %v", WorkflowPath, err)
+	}
+	for _, r := range Requirements() {
+		set := map[string]bool{}
+		for _, name := range supplied[r.Name] {
+			set[name] = true
+		}
+		for _, name := range r.Supplies {
+			if !set[name] {
+				t.Errorf("requirement %s is handed %s, and the job of that name in %s sets %v. "+
+					"A job that names what it needs and does not supply it produces a refusing check, which reads as a broken check",
+					r.Name, name, WorkflowPath, supplied[r.Name])
+			}
+		}
+	}
+}
+
+func TestSuppliedInReadsAJobEnvAndAStepEnvAndNothingElse(t *testing.T) {
+	const workflow = `name: x
+env:
+  NOT_A_JOBS_VARIABLE: 1
+jobs:
+  first:
+    name: one
+    env:
+      ON_THE_JOB: a
+    steps:
+      - uses: someone/an-action@0000000
+        with:
+          NOT_AN_ENV_KEY: b
+      - env:
+          ON_THE_STEP: c
+        run: something
+  second:
+    name: two
+    steps:
+      - run: something
+`
+	supplied, err := SuppliedIn(strings.NewReader(workflow))
+	if err != nil {
+		t.Fatalf("SuppliedIn: %v", err)
+	}
+	if got := strings.Join(supplied["one"], ","); got != "ON_THE_JOB,ON_THE_STEP" {
+		t.Errorf("job one supplies %q; a job mapping and a step mapping both count, a `with:` key does not, "+
+			"and a workflow-level mapping is not a job's", got)
+	}
+	if got, ok := supplied["two"]; ok {
+		t.Errorf("job two supplies %v, and it sets nothing at all", got)
+	}
+}
+
 func TestTheHarnessIsTriggeredDeliberatelyAndNoOtherWay(t *testing.T) {
 	// The property the issue is about. A push or pull_request trigger here puts
 	// the harness in front of every merge, which is the thing the decision
