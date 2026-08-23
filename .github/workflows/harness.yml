@@ -109,7 +109,18 @@ jobs:
     name: needs-jellyfin
     if: inputs.requirement == 'needs-jellyfin'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Longer than the jobs above because this one waits on a server rather than
+    # on a request: the check's own windows for the server answering, the
+    # catalogue filling in and an install finishing add up to more than fifteen
+    # minutes before the image is even pulled.
+    timeout-minutes: 30
+    env:
+      # Where the server below listens. The check refuses when this is unset
+      # instead of skipping, because a check that skips over a missing
+      # environment reports green over nothing. It is a literal rather than a
+      # repository variable because this job is what puts the server there, so
+      # the two would be the same fact written twice.
+      JELLYFIN_ADDRESS: http://127.0.0.1:8096
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -117,4 +128,28 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      # The server the requirement is named for. It is brought up here rather
+      # than inside the check for two reasons: a contributor on a laptop cannot
+      # have a test start one for them and needs to provide one the same way
+      # this job does, and the half of the check that plants a mismatched
+      # checksum serves its own catalogue on a port this machine chooses, which
+      # the server can only reach if it shares this network namespace.
+      #
+      # Pinned by digest beside its version, the way every action in this file
+      # is pinned by commit beside its tag, so a run a year from now is the run
+      # that was reviewed. The server is unprivileged and is destroyed with the
+      # runner; nothing here asks for rights on anybody's machine.
+      - name: Bring a Jellyfin server up for this run
+        run: |
+          docker run --detach --name jellyfin-under-test --network host jellyfin/jellyfin:10.11.11@sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db
       - run: go run . harness needs-jellyfin
+      # What the server said, on the path where the check could not tell whether
+      # the failure was the plugin or the server. The requirement's own cost
+      # line says that is a failure this run can have, so the log that separates
+      # the two is fetched rather than left on a machine that is about to go.
+      - name: What the server logged
+        if: failure()
+        run: docker logs jellyfin-under-test
+      - name: Tear the server down
+        if: always()
+        run: docker rm --force jellyfin-under-test
