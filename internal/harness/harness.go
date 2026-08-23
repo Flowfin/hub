@@ -47,6 +47,17 @@ type Requirement struct {
 	// It is here rather than in the workflow file because the sentence a person
 	// reads next to a green gate is the point of the field.
 	Costs string
+
+	// Supplies names the environment variables the runner has to hand the check,
+	// one per thing the job puts there for it.
+	//
+	// A requirement whose job supplies none of them is the failure this field
+	// exists against: the job reports under the requirement's own name, its one
+	// step runs the entry point, and the check it starts refuses for want of an
+	// environment nobody set. That reads as a broken check rather than as a
+	// broken job, and it is the half of the job definition nothing else here
+	// reads. What the reader over it can and cannot see is at SuppliedIn below.
+	Supplies []string
 }
 
 // Tag is the build constraint a test file carries to belong to this
@@ -62,9 +73,10 @@ func (r Requirement) Tag() string { return strings.ReplaceAll(r.Name, "-", "_") 
 func Requirements() []Requirement {
 	return []Requirement{
 		{
-			Name:    "needs-network",
-			Reaches: "a request off the runner: the published manifest at its address, a certificate or a redirect, the release API against the world rather than against a fixture",
-			Costs:   "a run that goes red when somebody else's service is having an afternoon, and a rate limit shared with everything else using the same token",
+			Name:     "needs-network",
+			Reaches:  "a request off the runner: the published manifest at its address, a certificate or a redirect, the release API against the world rather than against a fixture",
+			Costs:    "a run that goes red when somebody else's service is having an afternoon, and a rate limit shared with everything else using the same token",
+			Supplies: []string{"MANIFEST_ADDRESS"},
 		},
 		{
 			Name:    "needs-browser",
@@ -72,9 +84,10 @@ func Requirements() []Requirement {
 			Costs:   "a browser and its dependencies installed on the runner, and measurements that move with the runner's load rather than with the change",
 		},
 		{
-			Name:    "needs-jellyfin",
-			Reaches: "a running server: adding the repository address, listing the catalogue, installing a plugin and watching it load",
-			Costs:   "a Jellyfin server to talk to, brought up for the run and torn down after it, and a failure that can be the server rather than the plugin",
+			Name:     "needs-jellyfin",
+			Reaches:  "a running server: adding the repository address, listing the catalogue, installing a plugin and watching it load",
+			Costs:    "a Jellyfin server to talk to, brought up for the run and torn down after it, and a failure that can be the server rather than the plugin",
+			Supplies: []string{"JELLYFIN_ADDRESS"},
 		},
 	}
 }
@@ -292,4 +305,85 @@ func AutomaticTriggers(declared []string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// SuppliedIn reads which environment variables each job in a workflow sets,
+// keyed by the name the job reports under.
+//
+// It is a line reader for the reason Triggers above is one, and it reads the two
+// spellings this tree uses: an `env:` mapping on the job and an `env:` mapping on
+// a step. What it can see is that a name is set somewhere inside the job, and
+// that is the whole of it: it does not read the value, so a variable set to an
+// expression that resolves to nothing is a name this reader finds. The failure
+// it is for is the name being absent altogether.
+func SuppliedIn(r io.Reader) (map[string][]string, error) {
+	var (
+		out       = map[string][]string{}
+		inJobs    bool
+		job       string
+		jobIndent = 2
+		envIndent = -1
+		varIndent = -1
+	)
+	scan := bufio.NewScanner(r)
+	line := 0
+	for scan.Scan() {
+		line++
+		text := strings.TrimRight(scan.Text(), "")
+		trimmed := strings.TrimSpace(text)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if !strings.HasPrefix(text, " ") {
+			inJobs = trimmed == "jobs:"
+			job, envIndent, varIndent = "", -1, -1
+			continue
+		}
+		if !inJobs {
+			continue
+		}
+		if indent(text) == jobIndent && strings.HasSuffix(trimmed, ":") {
+			job, envIndent, varIndent = "", -1, -1
+			continue
+		}
+		if indent(text) == jobIndent+2 && strings.HasPrefix(trimmed, "name:") {
+			job = strings.Trim(strings.TrimSpace(strings.TrimPrefix(trimmed, "name:")), `"'`)
+			continue
+		}
+		if trimmed == "env:" || trimmed == "- env:" {
+			envIndent, varIndent = indent(text), -1
+			continue
+		}
+		if envIndent < 0 {
+			continue
+		}
+		// The block's members are the lines one level in from the key, and the
+		// first of them is what fixes that level. It cannot be computed from the
+		// key's own indent, because `env:` on a step is written under a list
+		// marker and its members sit two levels further in than the step's other
+		// keys do.
+		switch {
+		case varIndent < 0 && indent(text) > envIndent:
+			varIndent = indent(text)
+		case indent(text) == varIndent:
+		default:
+			envIndent, varIndent = -1, -1
+			continue
+		}
+		if job == "" {
+			continue
+		}
+		name, _, found := strings.Cut(trimmed, ":")
+		if !found || name == "" {
+			return nil, fmt.Errorf("line %d: %q is not an assignment this reader understands", line, trimmed)
+		}
+		out[job] = append(out[job], name)
+	}
+	if err := scan.Err(); err != nil {
+		return nil, err
+	}
+	for name := range out {
+		sort.Strings(out[name])
+	}
+	return out, nil
 }
