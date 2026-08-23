@@ -143,6 +143,29 @@ Writing one is a test file whose first line is the tag, for instance
 file is spared by the gate and run by no job, so it runs nowhere and nothing says
 so.
 
+Some of these are handed what they need through the environment, and the job in
+`.github/workflows/harness.yml` is what sets it there. On your own machine
+nothing sets it for you, so the check refuses and says which name it wanted. It
+refuses rather than skipping on purpose: a check that skips over a missing
+environment reports green over nothing.
+
+`needs-jellyfin` is the one that costs the most to run here, because it asks for
+a server rather than for a request. It takes the administrator account on the
+server it talks to, so it refuses one that has already been set up, and it needs
+a fresh one it can walk through the startup wizard itself. Bringing that up is
+yours to do and is deliberately not the test's:
+
+    docker run --rm --detach --name jellyfin-under-test --network host jellyfin/jellyfin:10.11.11
+    JELLYFIN_ADDRESS=http://127.0.0.1:8096 go run . harness needs-jellyfin
+    docker rm --force jellyfin-under-test
+
+`--network host` is not decoration. Half of that check serves a catalogue of its
+own on a port this machine chooses, so the server has to be able to reach back
+here; a server behind its own network cannot, and the failure it produces is the
+catalogue never filling in. The port is chosen by the operating system and is
+above 1024, which is what `decisions/headless-and-unelevated.md` asks for, and
+nothing in the run needs rights on your machine.
+
 On a clone made before `.gitattributes` pinned the whole tree to LF, the format
 leg lists Go files you have not touched. The content is not wrong: gofmt does not
 normalise before judging, and the working copy still holds the carriage returns
