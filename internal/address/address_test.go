@@ -29,9 +29,28 @@ func at(t *testing.T, path string) string {
 	return "https://" + ourHost(t)[0] + path
 }
 
+// nothingRecorded pins the recorded list to empty for the length of one test.
+//
+// Each test that calls it is about an address nobody has read, and the published
+// address is recorded now, so a test reading the live list stops biting on the
+// day an entry lands rather than on the day the rule changes. That is measured
+// rather than supposed: the three tests below went green together the moment
+// Answered took its first entry, and they were the reason it was noticed.
+// Pinning is what keeps them measuring the refusal instead of the state of the
+// tree, and the leg against the real tree with the real list is
+// TestNoTrackedFilePrintsAnUnansweredInstallAddress at the bottom of this file.
+func nothingRecorded(t *testing.T) {
+	t.Helper()
+	restore := Answered
+	Answered = nil
+	t.Cleanup(func() { Answered = restore })
+}
+
 func TestRefusesAnInstallAddressNobodyHasReadYet(t *testing.T) {
+	nothingRecorded(t)
+
 	// The bite, and the exact shape the tree carried before #35 removed it: an
-	// install instruction printed against an address that answers 404.
+	// install instruction printed against an address nobody had read.
 	page := "<p>Paste this into the repositories list:</p>\n" +
 		"<code>" + at(t, "/manifest.json") + "</code>\n"
 
@@ -51,13 +70,20 @@ func TestRefusesAnInstallAddressNobodyHasReadYet(t *testing.T) {
 }
 
 func TestRefusesANearMissOfThePublishedNameToo(t *testing.T) {
+	nothingRecorded(t)
+
 	// Four near misses of the published address: another file name, a deeper
 	// path, another scheme and port, another case. The first two are why the
 	// predicate matches a last segment ending in manifest.json rather than one
 	// that is exactly manifest.json. Each of the four is a string somebody
-	// pastes into a repositories list, and none of them is recorded as
-	// answering, so a file printing one promises a manifest just as loudly as
-	// the published name would.
+	// pastes into a repositories list, and with nothing recorded a file printing
+	// one promises a manifest just as loudly as the published name would.
+	//
+	// The fourth stops being a near miss once the published address is recorded,
+	// because answered() compares case-insensitively and that is the comparison
+	// the rule wants: an operator who pastes the address in another case reaches
+	// the same file. So it is a near miss of a name nobody has read, which is
+	// what the pinned list makes it here.
 	for _, printed := range []string{
 		at(t, "/prerelease-manifest.json"),
 		at(t, "/channels/stable-manifest.json"),
@@ -132,6 +158,8 @@ func TestSparesTextThatIsNotAnInstallAddress(t *testing.T) {
 }
 
 func TestWhatMayQuoteTheAddressIsNamedAndSmall(t *testing.T) {
+	nothingRecorded(t)
+
 	// The skip list is the part of this check most likely to grow quietly, one
 	// file at a time as each new one is discovered. It is a scope of two
 	// entries instead: the directory where an address is argued, and the check
