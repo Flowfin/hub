@@ -90,6 +90,9 @@ func (r Route) Publish(ctx context.Context, out io.Writer, declarations []source
 	if err := Judge(plugins); err != nil {
 		return err
 	}
+	if err := JudgeShared(plugins); err != nil {
+		return err
+	}
 
 	placed, err := publish.Place(r.Root, r.Target, func(w io.Writer) error {
 		return manifest.Encode(w, plugins)
@@ -254,6 +257,66 @@ func JudgeDropped(plans []posture.Plan) error {
 	return fmt.Errorf("%d resolved plugin(s) produced no entry, and a catalogue one entry shorter is not placed: "+
 		"a server reading it shows the operator a plugin that has stopped existing, and the run reports success\n  %s",
 		len(dropped), strings.Join(dropped, "\n  "))
+}
+
+// JudgeShared refuses a catalogue in which two entries carry one guid.
+//
+// A guid IS a plugin's identity to a Jellyfin server: it names the plugin in the
+// configuration, in the catalogue and on disk. Two entries under one guid is
+// therefore not a duplicated row, it is two different plugins claiming to be the
+// same one, and which of them a server holds installed afterwards is undecided.
+//
+// THE FAILURE IS QUIETER THAN THE SHAPE IT LOOKS LIKE. A generator that
+// accumulates into a map keyed by guid ships one entry and drops the other with
+// nothing red and nothing said, so the manifest is well formed, deterministic and
+// missing a plugin. This route builds a slice rather than a map, so both entries
+// survive as far as here, and this is where the run stops instead of publishing
+// them. Either way the manifest is wrong before anybody uses it, which is why
+// this is a refusal and not a note in the report.
+//
+// EVERY SHARED IDENTIFIER IS NAMED AT ONCE, and each with the entries that carry
+// it, so a stock in which two pairs collide is repaired in one pass rather than
+// one run per pair. The order is the order the entries arrive in, which
+// manifest.OrderPlugins has already made total, so two runs over one input print
+// one text.
+//
+// It reads the guid as it was written. Comparing case-insensitively or with the
+// braces and hyphens stripped would refuse more, and it would also refuse a pair
+// no server confuses, which is a judgement about what a server parses rather than
+// about what this repository declares. internal/identity is where a guid is held
+// to its shape, and a pair that differs only in case reaches here as two
+// identifiers; that is a bound rather than a decision, and #812 is where it is
+// argued.
+//
+// The instance that produced this rule is on iderex/operations#812: three plugin
+// boards shipped the template's own guid, measured across all twelve manifests
+// before any of them had a release.
+func JudgeShared(plugins []manifest.Plugin) error {
+	carriers := map[string][]string{}
+	var order []string
+	for _, p := range plugins {
+		if _, seen := carriers[p.GUID]; !seen {
+			order = append(order, p.GUID)
+		}
+		carriers[p.GUID] = append(carriers[p.GUID], p.Name)
+	}
+
+	var shared []string
+	for _, guid := range order {
+		names := carriers[guid]
+		if len(names) < 2 {
+			continue
+		}
+		shared = append(shared, fmt.Sprintf("%s is carried by %d entries: %s",
+			guid, len(names), strings.Join(names, ", ")))
+	}
+	if len(shared) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%d guid(s) are carried by more than one entry, and such a catalogue is not placed: "+
+		"a guid is the plugin's identity to a server, so which of the entries it holds installed afterwards "+
+		"is undecided:\n  %s",
+		len(shared), strings.Join(shared, "\n  "))
 }
 
 // Judge refuses a catalogue with no entries in it.
