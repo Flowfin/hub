@@ -11,6 +11,7 @@ import (
 	"testing/fstest"
 	"time"
 
+	"flowfin.dev/hub/internal/identity"
 	"flowfin.dev/hub/internal/pairing"
 	"flowfin.dev/hub/internal/posture"
 	"flowfin.dev/hub/internal/publish"
@@ -27,6 +28,13 @@ import (
 const (
 	digest = "0123456789abcdef0123456789abcdef"
 	guid   = "0a1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9"
+
+	// second is an identity of its own, and it exists because published() hands
+	// every plugin the constant above. Two plugins built by that helper
+	// therefore SHARE a guid, which is the state iderex/operations#812 was
+	// filed against, so the fixture that has to PASS is the one carrying this
+	// and not the one carrying the default.
+	second = "9f8e7d6c-5b4a-3928-1706-f5e4d3c2b1a0"
 )
 
 // world is the asset bodies a run would have fetched, by address.
@@ -131,6 +139,23 @@ func without(release sources.Release, suffix string) sources.Release {
 		kept = append(kept, a)
 	}
 	release.Assets = kept
+	return release
+}
+
+// carrying returns the same release with a different guid in its descriptor.
+//
+// A field REWRITTEN rather than removed, which is the one plant in this file
+// that without() and undated() cannot express: a collision is two descriptors
+// agreeing, so what a fixture has to be able to say is that one of them
+// disagrees. It rewrites the body in the world rather than the release, because
+// the guid never travels on the release - the route reads it out of the asset.
+func carrying(w world, release sources.Release, id string) sources.Release {
+	for _, a := range release.Assets {
+		if !strings.HasSuffix(a.Name, identity.DescriptorSuffix) {
+			continue
+		}
+		w[a.URL] = []byte(strings.Replace(string(w[a.URL]), guid, id, 1))
+	}
 	return release
 }
 
@@ -528,6 +553,105 @@ func TestAnEmptyCatalogueIsRefusedRatherThanPlaced(t *testing.T) {
 	}
 	if err := Judge([]manifest.Plugin{{GUID: guid}}); err != nil {
 		t.Fatalf("a catalogue with an entry in it was refused: %v", err)
+	}
+}
+
+// TestTwoEntriesUnderOneGuidAreRefusedRatherThanPlaced is iderex/operations#812.
+// Three plugin boards shipped the plugin template's own guid, measured across
+// all twelve manifests before any of them had a release, and nothing between the
+// descriptor and the published file asked whether two entries claimed one
+// identity. A guid IS the plugin's identity to a server, so which of the two it
+// holds installed afterwards is undecided.
+func TestTwoEntriesUnderOneGuidAreRefusedRatherThanPlaced(t *testing.T) {
+	w := world{}
+	l := listing{
+		"an-account/jellyfin-plugin-a-plugin": []sources.Release{
+			published(w, "a-plugin", "1.0.0-stable", 10, "1.0.0.0", "A Plugin"),
+		},
+		"an-account/jellyfin-plugin-another-plugin": []sources.Release{
+			published(w, "another-plugin", "1.0.0-stable", 10, "1.0.0.0", "Another Plugin"),
+		},
+	}
+	route, _ := routeInto(t, l, w)
+
+	var out strings.Builder
+	err := route.Publish(context.Background(), &out, declaring(t, "a-plugin", "another-plugin"))
+	if err == nil {
+		t.Fatalf("two entries carried one guid and the run exited zero:\n%s", out.String())
+	}
+	// The identifier and BOTH carriers, so a repair does not need a second run
+	// to find out which entries the collision is between.
+	for _, phrase := range []string{guid, "A Plugin", "Another Plugin"} {
+		if !strings.Contains(err.Error(), phrase) {
+			t.Errorf("the refusal does not name %q: %v", phrase, err)
+		}
+	}
+	if _, statErr := os.Stat(route.Target.Path(route.Root)); statErr == nil {
+		t.Fatalf("a catalogue with two entries under one guid was placed:\n%s", placedBytes(t, route))
+	}
+}
+
+// TestTwoPluginsWithIdentitiesOfTheirOwnArePlaced is the near-miss beside it,
+// and it is the one that catches a rule refusing any run with two plugins in it.
+// One value of the fixture separates the two tests: the second plugin's
+// descriptor carries an identifier of its own.
+func TestTwoPluginsWithIdentitiesOfTheirOwnArePlaced(t *testing.T) {
+	w := world{}
+	l := listing{
+		"an-account/jellyfin-plugin-a-plugin": []sources.Release{
+			published(w, "a-plugin", "1.0.0-stable", 10, "1.0.0.0", "A Plugin"),
+		},
+		"an-account/jellyfin-plugin-another-plugin": []sources.Release{
+			carrying(w, published(w, "another-plugin", "1.0.0-stable", 10, "1.0.0.0", "Another Plugin"), second),
+		},
+	}
+	route, _ := routeInto(t, l, w)
+
+	var out strings.Builder
+	if err := route.Publish(context.Background(), &out, declaring(t, "a-plugin", "another-plugin")); err != nil {
+		t.Fatalf("two plugins with identities of their own were refused: %v\n%s", err, out.String())
+	}
+	var plugins []manifest.Plugin
+	if err := json.Unmarshal(placedBytes(t, route), &plugins); err != nil {
+		t.Fatalf("what was placed is not the manifest: %v", err)
+	}
+	if len(plugins) != 2 {
+		t.Fatalf("the placed catalogue carries %d entries, want 2", len(plugins))
+	}
+	if plugins[0].GUID == plugins[1].GUID {
+		t.Fatalf("the fixture planted no second identifier: both entries carry %s", plugins[0].GUID)
+	}
+}
+
+// TestASharedGuidIsRefusedInBothDirections judges the rule away from the route,
+// so a change to the order the parts run in cannot make it pass by never being
+// reached. The empty and single-entry rows are here because a rule counting
+// carriers is the kind that refuses a list of one by an off-by-one.
+func TestASharedGuidIsRefusedInBothDirections(t *testing.T) {
+	for _, c := range []struct {
+		name     string
+		plugins  []manifest.Plugin
+		refusing bool
+	}{
+		{"nothing", nil, false},
+		{"one entry", []manifest.Plugin{{GUID: guid, Name: "A Plugin"}}, false},
+		{"two identities", []manifest.Plugin{{GUID: guid, Name: "A Plugin"}, {GUID: second, Name: "Another Plugin"}}, false},
+		{"one identity twice", []manifest.Plugin{{GUID: guid, Name: "A Plugin"}, {GUID: guid, Name: "Another Plugin"}}, true},
+		{"one identity three times", []manifest.Plugin{
+			{GUID: guid, Name: "A Plugin"},
+			{GUID: guid, Name: "Another Plugin"},
+			{GUID: guid, Name: "A Third Plugin"},
+		}, true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			err := JudgeShared(c.plugins)
+			if c.refusing && err == nil {
+				t.Fatalf("%s was accepted", c.name)
+			}
+			if !c.refusing && err != nil {
+				t.Fatalf("%s was refused: %v", c.name, err)
+			}
+		})
 	}
 }
 
