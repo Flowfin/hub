@@ -121,8 +121,17 @@ what a single root `LICENSE` gets:
     gh api repos/Flowfin/hub --jq '.license.spdx_id'
     AGPL-3.0
 
-Run 2026-08-25. A reader who takes that field for the whole answer will miss this
-file, and nothing on the platform side can be made to state two.
+That field holds one licence and cannot hold two, which is a property of the
+field rather than a judgement about it:
+
+    gh api repos/Flowfin/hub --jq '.license | type'
+    object
+
+Both run 2026-08-25. So a reader who takes that field for the whole answer will
+miss this file. What the platform can be made to say elsewhere, in a description
+or a page of its own, is not read here and no claim is made about it: the reason
+this declaration is a file in the tree is that the tree is where a licence
+question is answered, not that no other surface exists.
 
 ## What refuses a departure
 

@@ -221,8 +221,14 @@ one licence for a tree that grants under two:
     gh api repos/Flowfin/hub --jq '.license.spdx_id'
     AGPL-3.0
 
-Run 2026-08-25. Nothing on the platform side can be made to state both, which is
-why the declaration is a file in the tree.
+That field holds one licence and cannot hold two:
+
+    gh api repos/Flowfin/hub --jq '.license | type'
+    object
+
+Both run 2026-08-25. The declaration is a file in the tree because the tree is
+where this repository answers a licence question, and a reader who stops at that
+field will not have the whole answer.
 
 The plugin repositories this catalogue lists are separate repositories under
 their own terms. A catalogue listing something is not a statement about its
