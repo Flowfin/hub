@@ -185,40 +185,44 @@ own documentation.
 
 ## License
 
-The GNU Affero General Public License, version 3 or any later version. The full
-text is in [LICENSE](LICENSE), and the "or any later version" is the option the
-licence's own application notice offers rather than an addition to it.
+Two licences over one tree.
 
-The detector reads it:
+The code is under the GNU Affero General Public License, version 3 or any later
+version. The full text is in [LICENSE](LICENSE), and the "or any later version"
+is the option the licence's own application notice offers rather than an addition
+to it.
+
+The design system and the words on the published pages are under CC-BY-4.0,
+attribution required, so that a project adopting the design system does not
+inherit a code licence with it.
+
+### What it covers
+
+The boundary between the two does not run between files. Both served pages hold
+the page's own stylesheet, its markup and its script in the same bytes as the
+words a reader reads, so a table of paths would be wrong about part of every file
+it named. [`decisions/licensing.md`](decisions/licensing.md) is the declaration,
+part by part, and it is the authority rather than this section: it says which
+bytes are under which licence, what a reader who copies a whole file takes, and
+what the tree does not carry.
+
+The short of it. The generator, the site's own markup, stylesheets and script,
+the documents and the declared source set are AGPL-3.0-or-later. The words on the
+published pages, and the design system including `docs/design-tokens.json`, are
+CC-BY-4.0.
+
+Adopting the design system means following what it says rather than copying the
+file, which no licence reaches. Copying the file, or a client built from it, is a
+derivative and does, and CC-BY-4.0 is the licence that reaches it.
+
+The repository detector reads the root file and only the root file, so it reports
+one licence for a tree that grants under two:
 
     gh api repos/Flowfin/hub --jq '.license.spdx_id'
     AGPL-3.0
 
-Run 2026-08-09.
-
-### What it covers
-
-Every path in this repository, with no exception and no second licence anywhere
-in the tree. That is worth saying out loud because this tree holds three kinds of
-thing with three different audiences, and a reader who knows that will look for a
-boundary:
-
-| Path | What it is | Under |
-|---|---|---|
-| `manifest/`, `internal/`, `main.go` | The generator, which is a program | AGPL-3.0-or-later |
-| `docs/` | The published site, including the design system | AGPL-3.0-or-later |
-| `decisions/`, `*.md` | The documents | AGPL-3.0-or-later |
-| `sources/` | The declared source set, which is data | AGPL-3.0-or-later |
-
-The design system is prose and numbers other projects are invited to adopt, and
-adopting them means following what they say rather than copying the file, which
-the licence does not reach. Copying the file, or a client built from it, is a
-derivative and does.
-
-Whether the published pages and the design system should carry different terms
-from the generator is entry 1 of #1 and is open. A single `LICENSE` at the root
-reads as covering the whole tree, which is what the table above states, so a split
-would be a change to this rather than a reading of it.
+Run 2026-08-25. Nothing on the platform side can be made to state both, which is
+why the declaration is a file in the tree.
 
 The plugin repositories this catalogue lists are separate repositories under
 their own terms. A catalogue listing something is not a statement about its
