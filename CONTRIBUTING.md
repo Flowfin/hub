@@ -185,10 +185,12 @@ the site.
 `decisions/` is what has been settled and why, and it is not published.
 
 The separation that matters most is between the generator and everything
-published, because only the first one is a program. Whether the design system
-ends up under a different licence from the generator is entry 1 of #1, and the
-boundary that answer would fall on is `docs/design-system.html` plus the token
-file #39 extracts from it.
+published, because only the first one is a program. The design system does carry
+a different licence from the generator, and the boundary falls inside
+`docs/design-system.html` rather than around it: the words are CC-BY-4.0 and the
+markup, stylesheet and script they sit in are not. `decisions/licensing.md` is
+the declaration, and `docs/design-tokens.json` is on the design system's side of
+it.
 
 ## What runs today
 
@@ -250,10 +252,12 @@ tense. Read the relevant one before arguing with a rule, because most
 disagreements about a rule are disagreements with the decision behind it and
 those are easier to have directly.
 
-Some things are deliberately not settled. Those are in #1 and are not decided in
-a pull request. The license this repository carries is no longer one of them: it
-is AGPL-3.0, in [LICENSE](LICENSE), and what remains open in entry 1 of #1 is
-whether the published pages and the design system carry different terms.
+Some things were deliberately not settled, and those were in #1 rather than in a
+pull request. Every entry of that issue now carries an answer. The licence is one
+of them: the code is AGPL-3.0-or-later, in [LICENSE](LICENSE), and the design
+system and the words on the published pages are CC-BY-4.0.
+`decisions/licensing.md` is the declaration that says which bytes are which,
+because the boundary runs inside two files rather than between them.
 
 ## Style
 
