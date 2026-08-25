@@ -133,9 +133,38 @@ the review is where a departure is caught.
 The one thing that is mechanical is negative: `no-hardcoded-names` and the other
 legs are printed by `go run .` and none of them has a licence as its subject.
 
-## What this does not settle
+## The listed plugins carry a different licence, on purpose
 
-Whether the plugin repositories the catalogue lists should carry the same licence
-as the catalogue. Entry 1 of #1 raised it in its own body and no answer in that
-issue reaches it; it is a decision about twelve other repositories rather than
-about this tree, and this file states no answer to it.
+Entry 1 of #1 raised this in its own body: whether the plugin repositories the
+catalogue lists should carry the same licence as the catalogue. They do not, and
+that is an answer rather than an omission. The maintainer decided it on
+2026-08-08 in the same comment that took AGPL-3.0 for this tree: the twelve
+Jellyfin plugins stay GPL-3.0, because Jellyfin itself is under GPL-2.0 and
+AGPL-3.0 is incompatible with it.
+
+All twelve read that way today:
+
+    gh api "orgs/Flowfin/repos?per_page=100" --jq '.[] | select(.name|startswith("jellyfin-plugin-")) | .name + " " + .license.spdx_id' | sort
+    jellyfin-plugin-discover GPL-3.0
+    jellyfin-plugin-invites GPL-3.0
+    jellyfin-plugin-metadata-sync GPL-3.0
+    jellyfin-plugin-requests GPL-3.0
+    jellyfin-plugin-server-pairing GPL-3.0
+    jellyfin-plugin-share-links GPL-3.0
+    jellyfin-plugin-smart-collections GPL-3.0
+    jellyfin-plugin-sso GPL-3.0
+    jellyfin-plugin-stats GPL-3.0
+    jellyfin-plugin-watchlist GPL-3.0
+    jellyfin-plugin-watch-sync GPL-3.0
+    jellyfin-plugin-whisper-subtitles GPL-3.0
+
+Run 2026-08-25. So the question a reader of the catalogue would ask has an
+answer, and the answer is that a catalogue under one licence lists plugins under
+another because the plugin host's own licence decides the plugins and not this
+tree.
+
+This changes nothing about which licence reaches which byte here. The plugin
+repositories are separate repositories under their own terms, listing something
+is not a statement about its licence, and the twelve are named above as a
+reading of what they carry rather than as a claim this file makes on their
+behalf.
