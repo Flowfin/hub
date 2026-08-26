@@ -54,12 +54,43 @@ jobs:
           # The read is against the world, so it meets the rate limit without a
           # token. The token is the run's own, scoped by the permissions above.
           GITHUB_TOKEN: ${{ github.token }}
-          # Where the manifest is published. It is a repository variable rather
-          # than a literal here because decisions/manifest-address.md allows an
-          # install address into a tracked file only once the address answers
-          # with the file it promises, and today it answers 404. Unset is a
-          # refusal in the check rather than a skip.
-          MANIFEST_ADDRESS: ${{ vars.MANIFEST_ADDRESS }}
+          # Where the manifest is published, as a literal.
+          #
+          # It was a repository variable, and the reason for that indirection is
+          # spent. It said decisions/manifest-address.md allows an install
+          # address into a tracked file only once the address answers with the
+          # file it promises, and that today it answers 404. The address answers
+          # now and internal/address.Answered carries the reading.
+          #
+          # What the variable cost is why this is not a tidy-up. Nothing ever
+          # declared it, an unset variable interpolates to the empty string
+          # rather than failing the step, and the check treats an empty address
+          # as a refusal rather than a skip - correctly, because a check that
+          # does not know where to look must not report the catalogue current.
+          # So this job could not pass, while every gate run went on offering
+          # the requirement as one somebody may ask for.
+          #
+          # The literal is judged where the variable was not.
+          # internal/address.CheckTree reads every tracked file except
+          # `decisions/` and its own source, so install-address-is-answered
+          # refuses this line if the address it carries is not on the Answered
+          # list. Proven by putting an unrecorded address of that shape here and
+          # watching the leg name this file and this line.
+          #
+          # THE PROOF IS ELIDED RATHER THAN PASTED, and that is the second thing
+          # measured here. Writing the near miss into this comment made the leg
+          # refuse the comment, at this line, because the rule reads prose and
+          # source alike. Reproduce it rather than reading it: put a path ending
+          # in manifest.json on this host, that Answered does not carry, in the
+          # value below and run the leg.
+          #
+          # THAT PROOF HAS A BOUND WORTH KNOWING BEFORE EDITING THIS LINE. The
+          # rule matches a path whose LAST SEGMENT ends in manifest.json on a
+          # host this project serves. An address that answers with nothing but
+          # is spelled some other way walks past the leg, measured the same way.
+          # What guards this value against that is the harness run going red,
+          # not the merge gate.
+          MANIFEST_ADDRESS: https://flowfin.dev/manifest.json
         run: go run . harness needs-network
 
   needs-browser:
