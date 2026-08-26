@@ -17,5 +17,24 @@
                 "timestamp": "2026-08-08T09:39:09Z"
             }
         ]
+    },
+    {
+        "guid": "29e90267-52ee-4bec-b4fb-870b8f5ddc53",
+        "name": "Playback Statistics",
+        "description": "Records what was played on this server and shows it back as statistics: usage over time, the clients and devices people play from, and how often the server had to transcode. Personal detail is visible only to the user it is about unless that user chooses otherwise, and server-wide views name nobody.",
+        "overview": "Playback statistics, kept private to the user they are about",
+        "owner": "Flowfin",
+        "category": "Administration",
+        "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-stats/master/img/logo.png",
+        "versions": [
+            {
+                "version": "0.1.0.0",
+                "changelog": "The entries for each release are in CHANGELOG.md in the repository.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-stats/releases/download/0.1.0.0-stable/playback-statistics_0.1.0.0.zip",
+                "checksum": "69dbb5648e0ef0ec73e1cf087d6f8e2d",
+                "timestamp": "2026-08-24T19:30:22Z"
+            }
+        ]
     }
 ]
