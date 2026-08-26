@@ -74,8 +74,8 @@ The third was not chosen, so a page's words stay in the page they are read from.
 - The declared source set under `sources/`, which is this project's data about
   which repositories it reads.
 
-**Under CC-BY-4.0**, `https://creativecommons.org/licenses/by/4.0/`, attribution
-required:
+**Under CC-BY-4.0**, whose text is in
+[LICENSES/CC-BY-4.0.txt](../LICENSES/CC-BY-4.0.txt), attribution required:
 
 - The words a reader reads on `docs/index.html` and `docs/design-system.html`:
   the running text, the headings, the table contents and the captions. Not the
@@ -104,19 +104,27 @@ page, and an adopter who wants the page takes it under both sets of terms.
 
 ## What the tree does not carry
 
-The CC-BY-4.0 text. `LICENSE` holds the AGPL in full and there is no second
-licence file:
+Not the CC-BY-4.0 text any more. Both licences this tree grants under are
+reproduced here, the second one fetched from the licensor rather than typed:
 
     git ls-files | grep -i -E '^(LICENSE|COPYING|LICENSES)'
     LICENSE
+    LICENSES/CC-BY-4.0.txt
 
-Run 2026-08-25 at `2a8f88a`. So the second licence is named by identifier and
-address above and is not reproduced in this repository, which is weaker than what
-the first one gets. That is a gap rather than a decision, and #140 is where it is
-held.
+Run 2026-08-26 on the change that added the second file, for #140.
+`LICENSES/CC-BY-4.0.txt` is the plain-text legal code served at
+`https://creativecommons.org/licenses/by/4.0/legalcode.txt`, and the commit that
+added it names that address, because a licence text reproduced from recollection
+is the one artefact a reader will not check against its source.
 
-The repository detector reads the first licence and only the first one, which is
-what a single root `LICENSE` gets:
+The AGPL text is not copied into that directory beside it. `LICENSE` stays at
+the root, where the detector below reads it and where a reader looks first, and
+one text held in two places is a text that can drift with nothing here to refuse
+the drift.
+
+What the tree still does not carry is one surface that reports both. The
+repository detector reads the root file and only the root file, which is what a
+single root `LICENSE` gets:
 
     gh api repos/Flowfin/hub --jq '.license.spdx_id'
     AGPL-3.0
@@ -127,11 +135,12 @@ field rather than a judgement about it:
     gh api repos/Flowfin/hub --jq '.license | type'
     object
 
-Both run 2026-08-25. So a reader who takes that field for the whole answer will
-miss this file. What the platform can be made to say elsewhere, in a description
-or a page of its own, is not read here and no claim is made about it: the reason
-this declaration is a file in the tree is that the tree is where a licence
-question is answered, not that no other surface exists.
+Both run 2026-08-26. That field is derived from the root file, so a second text
+under `LICENSES/` was never going to move it, and a reader who takes it for the
+whole answer still misses this file. What the platform can be made to say
+elsewhere, in a description or a page of its own, is not read here and no claim
+is made about it: the reason this declaration is a file in the tree is that the
+tree is where a licence question is answered, not that no other surface exists.
 
 ## What refuses a departure
 
