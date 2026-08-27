@@ -1,0 +1,87 @@
+# The freshness watch: read the published catalogue from outside and refuse it
+# when it no longer carries the newest finished release of a declared plugin.
+#
+# This is the one state decisions/release-procedure.md refuses a release for
+# that starts holding on its own. The other three are facts about this tree and
+# hold still until somebody changes them; this one arrives the moment a plugin
+# releases, with nothing here having moved, and what an operator sees is a
+# version standing still. It happened for two days in August: two publication
+# runs both printed that a merge was owed, both were green because that is what
+# they were asked to do, and nobody read either verdict.
+#
+# What is here is not a new check. `go run . freshness` asks the release verb's
+# own catalogue condition, and internal/freshness is where the reading is
+# decided against planted bodies. What was missing was a route that asks it
+# without a person deciding to, and that is the schedule below.
+#
+# It is a file of its own rather than a schedule on harness.yml. That file
+# declares one trigger, a person asking for it, and internal/harness refuses any
+# other, because a check run on a timer produces a red nobody is holding. This
+# is the one check that argument does not reach: the state it refuses arrives
+# while nobody is looking, so a red nobody is holding is precisely what has to
+# be raised.
+#
+# Nothing here reports the failure onward, and nothing needs to. sweep.yml
+# derives its watch from the files that declare a schedule, so this file joins
+# that set by declaring one, and a run of it that ends in anything but success
+# becomes a distinct failure keyed on this path and one tracking issue. The
+# delay that buys is up to a day: the sweep runs on its own schedule and reports
+# last night's failure this morning.
+#
+# What closes the issue it raises is a run of this workflow that succeeds. That
+# is a merge of the placed catalogue and the deployment behind it, not an edit
+# here, and closing it while the catalogue is still stale raises it again.
+#
+# Hardened the way every other workflow here is: actions pinned by commit with
+# the version beside them, checkout without persisted credentials, and read-only
+# permissions, because no step here writes anything.
+name: Freshness
+
+on:
+  # Half an hour after the publication run and an hour before the sweep, so a
+  # catalogue the morning's publication found stale is refused here and reported
+  # by that same morning's sweep rather than the next one.
+  schedule:
+    - cron: "53 5 * * *"
+  # And on request, which is the run wanted the moment a merge of the placed
+  # catalogue has been deployed, to see the watch go green again.
+  workflow_dispatch:
+
+# Read-only. This run reads two addresses off the machine and writes nothing.
+permissions:
+  contents: read
+
+# A superseded run waits rather than being cancelled, for the reason sweep.yml
+# gives next door: this run is the one that decides whether anything is wrong,
+# and a cancelled one leaves that question unasked with a tick over it.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  freshness:
+    name: "Freshness: published catalogue"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # go.mod is the authority for the version floor, so it is read rather
+          # than restated here where it would drift.
+          go-version-file: go.mod
+      # The address is not set here and is not settable here. The verb reads the
+      # list internal/address.Answered holds, which is the same authority the
+      # merge gate refuses a printed address against, so this run cannot be
+      # pointed at somewhere nobody has read. harness.yml carries the other
+      # spelling and the comment there says what an unset variable cost.
+      - name: Refuse a published catalogue that is not current
+        run: go run . freshness
+        env:
+          # The declared sources are public, so a run without a token still
+          # works and meets the rate limit sooner. This is the run's own token
+          # and carries the read-only permissions above.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

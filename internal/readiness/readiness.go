@@ -244,26 +244,46 @@ type Reader func(address string) ([]byte, error)
 // Conditions assembles the whole set from what this run can read.
 //
 // The assembly is here rather than in the verb because the empty-list branch is
-// the one that decides what a tree with no recorded address is told, and a loop
-// over an empty list runs zero times and produces no condition at all. A release
-// judged against three conditions instead of four would then pass for having
-// asked one question fewer.
+// the one that decides what a tree with no recorded address is told, and a
+// release judged against three conditions instead of four would pass for having
+// asked one question fewer. That branch now lives in CatalogueConditions below,
+// which is the half a second caller asks for, and this function is what puts the
+// four together.
 //
 // One condition per recorded address rather than one for the list. An address
 // that has stopped answering is a fact about that address and says nothing about
 // its neighbour, and a single condition covering both would have to choose which
 // of them to report.
 func Conditions(root string, recorded []string, resolutions []sources.Resolution, read Reader) []Condition {
-	out := []Condition{
+	return append([]Condition{
 		Licence(root),
 		InstallAddress(recorded),
 		DeclaredSet(resolutions),
-	}
+	}, CatalogueConditions(recorded, resolutions, read)...)
+}
 
+// CatalogueConditions is the catalogue half of that set on its own.
+//
+// It is separated out because the freshness watch asks this half and no other.
+// Three of the four conditions above are states of this tree that hold still
+// until somebody changes them; this one starts holding on its own, the moment a
+// plugin releases and before anybody has touched anything here, which is why it
+// is the one asked on a schedule. A watch carrying its own assembly of the same
+// condition would answer differently from the release verb on the day either of
+// them moved, and the two disagreeing about one catalogue is worse than either
+// being wrong alone.
+//
+// The empty-list branch is why this is a function rather than a loop written
+// twice. A loop over an empty list runs zero times and produces no condition at
+// all, so a run with no recorded address would report nothing rather than
+// refusing, and a watch that read nowhere would be green.
+func CatalogueConditions(recorded []string, resolutions []sources.Resolution, read Reader) []Condition {
 	expected := Expectations(resolutions)
 	if len(recorded) == 0 {
-		return append(out, Catalogue("", nil, nil, expected))
+		return []Condition{Catalogue("", nil, nil, expected)}
 	}
+
+	out := make([]Condition, 0, len(recorded))
 	for _, addr := range recorded {
 		body, err := read(addr)
 		out = append(out, Catalogue(addr, body, err, expected))

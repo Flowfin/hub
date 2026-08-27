@@ -73,6 +73,13 @@ left by hand here is the paragraph above rather than starting the run.
 Opening the pull request that carries the placed file, and merging it. This is
 the same route as any other change and it has the same gate in front of it.
 
+Reading that verdict stayed a person's step and still does. What changed is what
+happens when nobody reads it: the freshness watch above refuses the state the
+unread verdict leaves behind, so the cost of missing one is a day rather than
+however long it takes somebody to ask why a version is old. It is a second
+chance and not a replacement, and the two days in August were paid before it
+existed.
+
 Waiting for the deployment, and deciding it happened. There is no workflow file
 here that deploys the site, so nothing in this tree reports the deployment's
 verdict, and the only way to know is to read the address.
@@ -100,9 +107,24 @@ from a server that cannot reach the network, and from a project that is not
 ready, which is why the quickstart in #55 cannot be written before this clears.
 
 A published catalogue that is not current. The catalogue parses, lists the
-plugin, and does not carry the version somebody is waiting for. Nothing reports
-this anywhere: the plugins simply stop moving, and it surfaces when a person
-asks why a version is old.
+plugin, and does not carry the version somebody is waiting for.
+
+The sentence that stood here said nothing reported this anywhere, that the
+plugins simply stopped moving, and that it surfaced when a person asked why a
+version was old. It is superseded rather than deleted, because it was true and
+because what replaces it is narrower than "this is now covered". Something
+reports it. `.github/workflows/freshness.yml` runs `go run . freshness` on a
+schedule, that verb asks this condition and no other, and a run of it that
+refuses becomes a distinct tracking issue by the route
+`.github/workflows/sweep.yml` already carries for a scheduled run that failed.
+
+What the residual is now is a delay and a reach, and both are worth reading
+before this is taken for cover. The watch runs once a day, so a catalogue that
+goes stale an hour after it runs is stale for most of a day before anything
+refuses; the sweep then runs on its own schedule, so the issue arrives the
+morning after that. And the watch reads the addresses
+`internal/address.Answered` holds, so a catalogue served somewhere nobody has
+recorded is outside it entirely.
 
 Nothing to publish. A run that resolved zero plugins produces exactly the file a
 correct run over an empty world would produce, so publishing it replaces a
