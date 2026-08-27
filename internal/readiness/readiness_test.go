@@ -342,9 +342,107 @@ func published(tag string) []byte {
 	return []byte(fmt.Sprintf(`[{"guid":"11111111-2222-3333-4444-555555555555","name":"One Plugin","versions":[{"version":"1.1.0.0","targetAbi":"10.10.0.0","sourceUrl":"https://a.example/an-account/a-repository/releases/download/%s/one-plugin.zip"}]}]`, tag))
 }
 
+// resolvedTo is one declaration resolved to the releases named, newest first,
+// so that Expectations takes the first finished one among them.
+func resolvedTo(t *testing.T, slug string, tags ...string) []sources.Resolution {
+	t.Helper()
+	releases := make([]sources.Release, 0, len(tags))
+	for _, tag := range tags {
+		releases = append(releases, sources.Release{Tag: tag})
+	}
+	return []sources.Resolution{{
+		Declaration: find(t, theDeclarations(t), slug),
+		State:       sources.Resolved,
+		Releases:    releases,
+	}}
+}
+
 func write(t *testing.T, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(name, []byte(content), 0o600); err != nil {
 		t.Fatalf("writing %s: %v", name, err)
+	}
+}
+
+func TestTheWatchAsksTheCatalogueConditionAndNoOther(t *testing.T) {
+	// What the freshness watch runs on a schedule. It is the same condition the
+	// release verb refuses on, assembled by the same function, so the two cannot
+	// answer differently about one catalogue. Asking a subset is the point: a
+	// watch that also refused for a missing licence would go red every night
+	// over a state nothing about the world can change.
+	read := func(string) ([]byte, error) { return published("1.0.0-stable"), nil }
+	conditions := readiness.CatalogueConditions([]string{"https://a.example/manifest.json"},
+		resolvedTo(t, "one-plugin", "1.1.0-stable", "1.0.0-stable"), read)
+
+	if len(conditions) != 1 {
+		t.Fatalf("the watch asked %d condition(s), want the catalogue and no other: %+v", len(conditions), conditions)
+	}
+	if conditions[0].Name != "catalogue-not-current" {
+		t.Fatalf("the watch asks %s rather than the catalogue condition", conditions[0].Name)
+	}
+}
+
+func TestACatalogueMadeStaleInAFixtureIsWhatTheWatchRefuses(t *testing.T) {
+	// The two days in August, planted: the address answers, the body parses,
+	// the plugin is listed, and the release everybody is waiting for is not in
+	// it. A watch that asked only whether the address answered would be green
+	// here, which is the state this whole route exists against.
+	read := func(string) ([]byte, error) { return published("1.0.0-stable"), nil }
+	conditions := readiness.CatalogueConditions([]string{"https://a.example/manifest.json"},
+		resolvedTo(t, "one-plugin", "1.1.0-stable", "1.0.0-stable"), read)
+
+	err := readiness.Judge(conditions)
+	if err == nil {
+		t.Fatal("a catalogue missing the newest finished release passed the watch, so every server would go on seeing an old build with nothing said")
+	}
+	if !strings.Contains(err.Error(), "1.1.0-stable") {
+		t.Errorf("the refusal does not name the release that is missing: %v", err)
+	}
+
+	// The same fixture with the release present, so the refusal above is one
+	// this reading could have avoided rather than one it always makes.
+	current := func(string) ([]byte, error) { return published("1.1.0-stable"), nil }
+	if err := readiness.Judge(readiness.CatalogueConditions([]string{"https://a.example/manifest.json"},
+		resolvedTo(t, "one-plugin", "1.1.0-stable", "1.0.0-stable"), current)); err != nil {
+		t.Errorf("a current catalogue was refused by the watch: %v", err)
+	}
+}
+
+func TestAWatchThatKnowsOfNoAddressRefusesRatherThanPassing(t *testing.T) {
+	// The branch the assembly exists for, read from the watch's end. A loop over
+	// an empty list runs zero times, and a set with no conditions in it is what
+	// Judge calls a tree nothing has been read about.
+	read := func(string) ([]byte, error) {
+		t.Error("something was read although no address is recorded")
+		return nil, nil
+	}
+
+	conditions := readiness.CatalogueConditions(nil, nil, read)
+	if len(conditions) != 1 {
+		t.Fatalf("a watch with no address assembled %d condition(s), so it would report a catalogue it never looked for", len(conditions))
+	}
+	if err := readiness.Judge(conditions); err == nil {
+		t.Fatal("a watch that knows of no address to read passed")
+	}
+}
+
+func TestTheWatchReadsEveryRecordedAddress(t *testing.T) {
+	// One condition per address, the same way the release verb gets them. An
+	// address that stopped answering says nothing about its neighbour, and a
+	// watch reading only the first would be silent about the second forever.
+	var asked []string
+	read := func(addr string) ([]byte, error) {
+		asked = append(asked, addr)
+		return published("1.1.0-stable"), nil
+	}
+
+	recorded := []string{"https://a.example/manifest.json", "https://b.example/manifest.json"}
+	conditions := readiness.CatalogueConditions(recorded, nil, read)
+
+	if strings.Join(asked, ",") != strings.Join(recorded, ",") {
+		t.Fatalf("the watch read %v of %v", asked, recorded)
+	}
+	if len(conditions) != len(recorded) {
+		t.Fatalf("the watch assembled %d condition(s) for %d address(es)", len(conditions), len(recorded))
 	}
 }

@@ -60,6 +60,8 @@ func run(args []string, out io.Writer) error {
 		return runPublish(args[1:], out)
 	case "release":
 		return runRelease(args[1:], out)
+	case "freshness":
+		return runFreshness(args[1:], out)
 	case "scan":
 		return runScan(args[1:], out)
 	case "sweep":
@@ -183,6 +185,65 @@ func runRelease(args []string, out io.Writer) error {
 
 	conditions := readiness.Conditions(wd, address.Answered, resolutions,
 		func(addr string) ([]byte, error) { return fetch(ctx, addr) })
+
+	readiness.Report(out, conditions)
+	return readiness.Judge(conditions)
+}
+
+// runFreshness says whether the published catalogue still carries the newest
+// finished release of every declared plugin, and exits non-zero while it does
+// not.
+//
+// It is the one condition of decisions/release-procedure.md that starts holding
+// on its own. The other three are states of this tree and hold still until
+// somebody changes them; this one arrives the moment a plugin releases, with
+// nothing here having moved, and the symptom is a version standing still on
+// somebody else's server. That is why it is asked on a schedule rather than only
+// when a person types the verb above: deciding that a publication run's verdict
+// calls for a merge was the step that stayed a person's, and for two days in
+// August nobody took it.
+//
+// Nothing new is judged here. readiness.CatalogueConditions is the release
+// verb's own assembly of that condition, so a watch that reports and a release
+// that refuses cannot come to different answers about one catalogue, and every
+// rule the two share is tripped against a planted reading in internal/readiness.
+//
+// What it refuses is wider than a stale catalogue, and deliberately so. An
+// address that could not be read and a release list that would not resolve each
+// leave the condition unevaluated, which refuses in its own words rather than
+// passing: the likeliest real failure of a check that leaves the runner is a
+// blip, and reading a blip as evidence of freshness is worse than a false alarm.
+// The resolution report is printed above the verdict, so the run says which of
+// the two happened rather than leaving a reader to guess.
+func runFreshness(args []string, out io.Writer) error {
+	if len(args) > 0 {
+		return fmt.Errorf("freshness takes no further words, and %q was given", strings.Join(args, " "))
+	}
+
+	declarations, err := sources.Load(os.DirFS(sources.Dir))
+	if err != nil {
+		return err
+	}
+
+	client := releases.New()
+	client.Token = os.Getenv("GITHUB_TOKEN")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	resolutions := sources.Resolve(ctx, client, declarations)
+	fmt.Fprint(out, sources.Report(resolutions))
+	fmt.Fprintln(out)
+
+	conditions := readiness.CatalogueConditions(address.Answered, resolutions,
+		func(addr string) ([]byte, error) { return fetch(ctx, addr) })
+
+	// The report and the refusal below are the release verb's own words, because
+	// they are the release verb's own condition. This line is what says which of
+	// the four is being asked here, so a reader of an unattended run is not left
+	// to infer it from the one condition that appears.
+	fmt.Fprintf(out, "the freshness watch asks one of the states a release is refused for, on its own: %d address(es) recorded as answering.\n\n",
+		len(address.Answered))
 
 	readiness.Report(out, conditions)
 	return readiness.Judge(conditions)
@@ -349,7 +410,7 @@ func runHarness(args []string, out io.Writer) error {
 }
 
 func usage(out io.Writer) {
-	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . publish\n       go run . release\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
+	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . publish\n       go run . release\n       go run . freshness\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
 		strings.Join(gate.Names(gate.Legs()), ", "),
 		strings.Join(harness.Names(harness.Requirements()), ", "))
 }

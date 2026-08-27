@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"flowfin.dev/hub/internal/freshness"
 	"flowfin.dev/hub/internal/gate"
 	"flowfin.dev/hub/internal/harness"
 )
@@ -288,5 +289,44 @@ func TestTheHarnessReportRunsNothing(t *testing.T) {
 	}
 	if !strings.Contains(text, "None of them runs in the gate") {
 		t.Fatalf("the report does not say the gate is separate from it:\n%s", text)
+	}
+}
+
+func TestTheUsageNamesTheFreshnessVerb(t *testing.T) {
+	// The verb a schedule runs is still a verb a person runs, and the person who
+	// wants to know whether the catalogue is behind should not have to read a
+	// workflow file to find out what asks that question.
+	var out strings.Builder
+	if err := run(nil, &out); err == nil {
+		t.Fatal("the entry point with no verb exited zero")
+	}
+	if !strings.Contains(out.String(), freshness.Verb) {
+		t.Fatalf("usage does not name the verb that refuses a stale catalogue:\n%s", out.String())
+	}
+}
+
+func TestTheFreshnessVerbIsNotListedAmongTheLegs(t *testing.T) {
+	// It reads an address off the machine, so a leg of that name would be a
+	// merge waiting on a host this repository does not run and on the deployment
+	// behind it. decisions/headless-and-unelevated.md is where that is refused.
+	if _, found := gate.Lookup(gate.Legs(), "freshness"); found {
+		t.Fatal("freshness is a leg of the gate")
+	}
+}
+
+func TestFreshnessTakesNoFurtherWords(t *testing.T) {
+	// A word after the verb would read as somebody naming an address to check,
+	// and the address this reads is the recorded one. Accepting and ignoring it
+	// would report on a catalogue nobody asked about.
+	var out strings.Builder
+	err := run([]string{"freshness", "https://somewhere.example/manifest.json"}, &out)
+	if err == nil {
+		t.Fatal("a word after the verb was accepted")
+	}
+	if !strings.Contains(err.Error(), "somewhere.example") {
+		t.Errorf("the refusal does not name what was given: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("the run started before the words were checked:\n%s", out.String())
 	}
 }
