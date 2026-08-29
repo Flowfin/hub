@@ -24,6 +24,19 @@ const WorkflowPath = ".github/workflows/publish.yml"
 // together instead of one of them being left behind.
 func (t Target) Group() string { return "publish-" + path.Join(t.Dir, t.Name) }
 
+// Branch is the standing branch a run proposes this target's bytes on.
+//
+// It is derived from the target for the same reason Group is, and against the
+// same failure: a target pointed at a second directory would otherwise go on
+// proposing its change on a branch named after where it used to go, and the two
+// would drift with nothing to notice it.
+//
+// One name rather than one per run. What repeated runs are meant to converge on
+// is a single open pull request carrying the current catalogue, and a branch per
+// run converges on a pile of them instead - which is the thing nobody reads and
+// then nobody merges.
+func (t Target) Branch() string { return "place/" + path.Join(t.Dir, t.Name) }
+
 // Concurrency is a workflow's top-level concurrency block.
 type Concurrency struct {
 	// Declared is false where the file carries no such block at all, which is

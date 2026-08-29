@@ -1,8 +1,10 @@
 # Static analysis of the GitHub Actions workflows themselves (zizmor). The
 # workflow YAML is the only thing in this repository that runs with a token, so
-# it is audited like any other code. Nothing here publishes anything and no job
-# holds contents:write today; the publication route is #31, and this gate is what
-# reads it on the day it arrives.
+# it is audited like any other code. ONE JOB HOLDS contents:write NOW, AND THIS
+# COMMENT SAID NONE DID. The publication run in publish.yml opens the pull request
+# that carries the catalogue, which is #154, and it holds pull-requests:write
+# beside it. Both are granted on that job and neither at the workflow level, which
+# is the rule at the foot of this comment rather than an exception to it.
 #
 # The gate runs zizmor's regular persona at --min-severity=low: it fails the
 # build on any actionable (low/medium/high/critical) security finding -
