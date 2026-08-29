@@ -10,6 +10,7 @@ import (
 	"flowfin.dev/hub/internal/freshness"
 	"flowfin.dev/hub/internal/gate"
 	"flowfin.dev/hub/internal/harness"
+	"flowfin.dev/hub/internal/publish"
 )
 
 func TestNoVerbIsRefused(t *testing.T) {
@@ -190,6 +191,112 @@ func TestPublishTakesNoFurtherWords(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Fatalf("the run started before the words were checked:\n%s", out.String())
+	}
+}
+
+func TestTheUsageNamesTheWordThatCarriesWhatWasPlaced(t *testing.T) {
+	// Placing the catalogue in a checkout that goes with the runner and
+	// proposing it are two different things, and somebody who cannot find the
+	// second one from the entry point runs the first and reads it as the whole
+	// route. That is the state this word was added to end.
+	var out strings.Builder
+	if err := run(nil, &out); err == nil {
+		t.Fatal("the entry point with no verb exited zero")
+	}
+	if !strings.Contains(out.String(), "go run . publish [carry]") {
+		t.Fatalf("usage does not name the word that proposes what was placed:\n%s", out.String())
+	}
+}
+
+func TestAnUnknownWordAfterPublishIsRefusedBeforeAnythingRuns(t *testing.T) {
+	// The verb reaches the network and writes a file, so a misspelling of the
+	// one word it takes has to be refused before either of those, rather than
+	// after a run that then quietly proposed nothing.
+	var out strings.Builder
+	err := run([]string{"publish", "place"}, &out)
+	if err == nil {
+		t.Fatal("a word that is not the carrying word was accepted")
+	}
+	if !strings.Contains(err.Error(), "place") || !strings.Contains(err.Error(), "carry") {
+		t.Errorf("the refusal names neither what was given nor what is taken: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("the run started before the words were checked:\n%s", out.String())
+	}
+}
+
+func TestCarryingRefusesToGuessWhichRepositoryItProposesInto(t *testing.T) {
+	// The name is not in this tree. no-hardcoded-names refuses it in source,
+	// and a fallback would open a pull request on a repository nobody asked
+	// about.
+	t.Setenv("GITHUB_REPOSITORY", "")
+
+	var out strings.Builder
+	err := carryPlaced(context.Background(), &out, t.TempDir())
+	if err == nil {
+		t.Fatal("carrying with no repository named exited zero")
+	}
+	if !strings.Contains(err.Error(), "GITHUB_REPOSITORY") {
+		t.Fatalf("the refusal does not name what is missing: %v", err)
+	}
+}
+
+func TestCarryingRefusesToGuessWhichBranchTheRunIsOn(t *testing.T) {
+	// Which branch the run is on decides whether it may propose at all: what a
+	// run off the served branch compared its bytes against is not the published
+	// file. A fallback here would be that decision taken by a default.
+	t.Setenv("GITHUB_REPOSITORY", "an-account/a-repository")
+	t.Setenv("GITHUB_REF_NAME", "")
+
+	var out strings.Builder
+	err := carryPlaced(context.Background(), &out, t.TempDir())
+	if err == nil {
+		t.Fatal("carrying with no branch named exited zero")
+	}
+	if !strings.Contains(err.Error(), "GITHUB_REF_NAME") {
+		t.Fatalf("the refusal does not name what is missing: %v", err)
+	}
+}
+
+func TestCarryingWithoutATokenIsRefusedRatherThanAttempted(t *testing.T) {
+	// Unauthenticated, every read this needs still answers on a public
+	// repository and only the writes are refused, so the run would read the
+	// whole comparison and then fail on the one thing it exists to do.
+	t.Setenv("GITHUB_REPOSITORY", "an-account/a-repository")
+	t.Setenv("GITHUB_REF_NAME", "main")
+	t.Setenv("GITHUB_TOKEN", "")
+
+	var out strings.Builder
+	err := carryPlaced(context.Background(), &out, t.TempDir())
+	if err == nil {
+		t.Fatal("carrying with no token exited zero")
+	}
+	if !strings.Contains(err.Error(), "GITHUB_TOKEN") {
+		t.Fatalf("the refusal does not name what is missing: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("the run read something before refusing:\n%s", out.String())
+	}
+}
+
+func TestAPlacedFileThatCannotBeReadBackIsNotProposed(t *testing.T) {
+	// What is proposed is what the target holds, so it is read off the target.
+	// A read that failed is not an empty catalogue: proposing one would replace
+	// a working catalogue with nothing and report success.
+	t.Setenv("GITHUB_REPOSITORY", "an-account/a-repository")
+	t.Setenv("GITHUB_REF_NAME", "main")
+	t.Setenv("GITHUB_TOKEN", "a-token")
+
+	var out strings.Builder
+	err := carryPlaced(context.Background(), &out, t.TempDir())
+	if err == nil {
+		t.Fatal("a placed file that is not there was carried anyway")
+	}
+	if !strings.Contains(err.Error(), publish.Stable.Name) {
+		t.Fatalf("the refusal does not name what could not be read back: %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("the run wrote something before refusing:\n%s", out.String())
 	}
 }
 

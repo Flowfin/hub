@@ -56,12 +56,14 @@ Deciding that a run's verdict calls for a merge, and asking for a run when a
 release lands between the scheduled ones. Starting the publication is not the
 hand step here. `.github/workflows/publish.yml` declares a daily schedule, a
 request trigger, and a concurrency group naming the destination so that two runs
-never write one file. What such a run leaves is a verdict and nothing else: its
-permissions are read-only, none of its three steps pushes, and its checkout goes
-with the runner. So `wrote new bytes` on the default branch is the sentence
-saying the published catalogue no longer matches what the declarations come to
-and a merge is owed, and reading that, then producing the bytes the request
-below carries, is the part that stayed a person's.
+never write one file. WHAT SUCH A RUN LEAVES IS A PULL REQUEST NOW, AND THIS PARAGRAPH SAID IT LEFT A
+VERDICT AND NOTHING ELSE. That was true, and it was the defect rather than the
+design: the run was green on every dispatch it made while the freshness watch
+below reddened twice on the exact version the run had just built and discarded,
+because reading the verdict was a step nobody took. `wrote new bytes` still
+means the placed catalogue no longer matches what was there before, and it is
+still worth reading; what no longer depends on somebody reading it is whether
+the difference reaches a pull request.
 
 The sentence that stood at this entry until this correction is superseded rather
 than deleted. It said the publication had no schedule, and it sent a reader to
@@ -70,8 +72,26 @@ still being decided. #32 was answered on 2026-08-20 and the workflow file above
 carries both, so what that sentence pointed forward to has arrived and what is
 left by hand here is the paragraph above rather than starting the run.
 
-Opening the pull request that carries the placed file, and merging it. This is
-the same route as any other change and it has the same gate in front of it.
+Merging the pull request that carries the placed file. This is the same route as
+any other change and it has the same gate in front of it.
+
+The sentence that stood at this entry is superseded rather than deleted. It said
+that opening that pull request was a hand step too, and it stopped being true
+when #154 landed: `go run . publish carry` reads what the served branch carries
+at the published path, and where the catalogue it built differs, commits it to
+one standing branch and opens or updates a single pull request against the
+served branch. `.github/workflows/publish.yml` runs the verb with that word, so
+every scheduled and every requested run does it. What is left here is the merge,
+which is deliberate: the run proposes and merges nothing, and nothing about the
+ruleset in front of the served directory moved.
+
+Two things about that request are worth knowing before it is met rather than
+after. Its checks have not started and will not start on their own, because a
+request opened with a run's own token creates no workflow run at all - so it
+sits carrying no verdict rather than a red one, and closing it and reopening it
+is what starts them. And the branch it stands on is committed to rather than
+rewritten, so the request reads as the sequence of catalogues it carried and a
+review of it is not replaced underneath whoever is reading.
 
 Reading that verdict stayed a person's step and still does. What changed is what
 happens when nobody reads it: the freshness watch above refuses the state the
