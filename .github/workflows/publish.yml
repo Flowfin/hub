@@ -11,16 +11,34 @@
 # that directory on purpose. So the branch, the gate and the merge are the same
 # route as every other change, and this workflow is the part in front of them.
 #
-# That makes the verdict the run prints the thing to read. On the default branch
-# `wrote new bytes` means the published catalogue no longer matches what the
-# declarations come to and a merge is owed; `nothing to write` means it does.
-# internal/publish decides that before the write rather than reading it off the
-# file afterwards, because identical bytes rewritten move the size and the
-# modification time exactly as new bytes do.
+# THE RUN NOW PROPOSES WHAT IT BUILT, AND THIS COMMENT SAID IT DID NOT. What
+# stood here said the verdict the run printed was the thing to read, and left
+# opening the pull request to whoever read it. Nothing read it: the run was green
+# on every dispatch while the freshness watch reddened twice on the exact version
+# the run had just built and discarded. So the carrying word is on the step
+# below, and a run that finds the served branch behind what the declarations come
+# to opens or updates one pull request against it. internal/carry is where every
+# part of that is decided and judged against a fixture.
+#
+# The merge is untouched, and that is the half to read carefully. This run
+# proposes and merges nothing, the ruleset in front of the default branch is
+# exactly as strict as it was, and the same gate stands in front of the request
+# this run opens as in front of any other.
+#
+# The trap that costs the most to find later: a request opened with a run's own
+# token creates no workflow run, so the checks on it do not start by themselves
+# and it sits carrying no verdict rather than a red one. Closing and reopening
+# the request starts them. The request says so in its own body, which is where
+# whoever merges it will be reading.
 #
 # Hardened the way every other workflow here is: actions pinned by commit with
-# the version beside them, checkout without persisted credentials, and read-only
-# permissions, because no step here pushes anything.
+# the version beside them, checkout without persisted credentials, nothing
+# granted at the workflow level, and the two write scopes on the one job that
+# needs them. The checkout still persists no credentials, because no step here
+# uses git to push: the branch, the commit and the request are all made through
+# the API, which also means the commit that lands is signed - and the ruleset in
+# front of the default branch requires a verified signature with no bypass, so a
+# commit made any other way from a runner could never be merged.
 name: Publish
 
 on:
@@ -31,9 +49,9 @@ on:
   # And on request, which is the run wanted the moment a plugin releases.
   workflow_dispatch:
 
-# Read-only. The run writes into its own checkout and pushes nowhere.
-permissions:
-  contents: read
+# Nothing at the workflow level. The job below grants the two scopes it needs and
+# nothing else.
+permissions: {}
 
 # Runs over one destination are serialised, and the run holding the write is
 # never the one cancelled. That is the opposite of the setting in gate.yml next
@@ -59,6 +77,12 @@ jobs:
     name: "Publish: catalogue"
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      # The standing branch and the commit on it, both made through the API.
+      contents: write
+      # The one request the run opens, and the read that finds the one already
+      # open so a second is not opened beside it.
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -69,10 +93,9 @@ jobs:
           # go.mod is the authority for the version floor, so it is read rather
           # than restated here where it would drift.
           go-version-file: go.mod
-      - name: Build the catalogue and place it
-        run: go run . publish
+      - name: Build the catalogue, place it, and propose it
+        run: go run . publish carry
         env:
-          # The declared sources are public, so a run without a token still
-          # works and meets the rate limit sooner. This is the run's own token
-          # and carries the read-only permissions above.
+          # The run's own token, carrying the two scopes granted on this job. It
+          # is what reads the declared sources, and what opens the request.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

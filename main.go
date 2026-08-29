@@ -21,10 +21,12 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 
 	"flowfin.dev/hub/internal/address"
+	"flowfin.dev/hub/internal/carry"
 	"flowfin.dev/hub/internal/catalogue"
 	"flowfin.dev/hub/internal/gate"
 	"flowfin.dev/hub/internal/harness"
@@ -108,9 +110,20 @@ func runSources(out io.Writer) error {
 // anywhere else. Moving what the address is served from is an edit to that one
 // value, which is the separation #31 asks for: the address is permanent and the
 // storage behind it is not.
+//
+// The word after the verb decides whether what was placed is proposed anywhere.
+// Placing writes into the checkout the run was started from, which on a runner
+// goes with the runner, so a run without the word changes nothing an operator
+// can fetch and says so. Reporting and acting are two words for the reason the
+// sweep gives for the same split: finding out what this does must not be done
+// by doing it.
 func runPublish(args []string, out io.Writer) error {
-	if len(args) > 0 {
-		return fmt.Errorf("publish takes no further words, and %q was given", strings.Join(args, " "))
+	carrying := false
+	switch {
+	case len(args) == 1 && args[0] == "carry":
+		carrying = true
+	case len(args) > 0:
+		return fmt.Errorf("the only word after publish is `carry`, and %q was given", strings.Join(args, " "))
 	}
 
 	declarations, err := sources.Load(os.DirFS(sources.Dir))
@@ -140,7 +153,58 @@ func runPublish(args []string, out io.Writer) error {
 		// the token.
 		Fetch: catalogue.Memo(client.Fetching(ctx)),
 	}
-	return route.Publish(ctx, out, declarations)
+	if err := route.Publish(ctx, out, declarations); err != nil {
+		return err
+	}
+	if !carrying {
+		fmt.Fprintf(out, "this run placed %s in its own checkout and nowhere else; `go run . publish carry` is the one that proposes it.\n", publish.Stable.Name)
+		return nil
+	}
+	return carryPlaced(ctx, out, wd)
+}
+
+// carryPlaced proposes what the run just placed to the branch the site is
+// served from.
+//
+// The bytes are read back off the placed file rather than kept from the
+// producing writer, and that is the one reading in this verb that is worth
+// arguing for: what is proposed has to be what the target now holds, so the
+// target is what it is read from. internal/publish is where the bytes on their
+// way in are compared against what was there before, and that comparison is a
+// different question from this one.
+//
+// Everything else here is read from the run's environment rather than written
+// into this tree. no-hardcoded-names refuses the repository name in source, and
+// the branch a run is on is a fact about the run.
+func carryPlaced(ctx context.Context, out io.Writer, root string) error {
+	repository := os.Getenv("GITHUB_REPOSITORY")
+	if repository == "" {
+		return fmt.Errorf("GITHUB_REPOSITORY names the repository to carry into, and it is not set")
+	}
+	on := os.Getenv("GITHUB_REF_NAME")
+	if on == "" {
+		return fmt.Errorf("GITHUB_REF_NAME names the branch this run is on, and it is not set")
+	}
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		return fmt.Errorf("carrying the catalogue needs GITHUB_TOKEN, and it is not set")
+	}
+
+	placed, err := os.ReadFile(publish.Stable.Path(root))
+	if err != nil {
+		return fmt.Errorf("reading back the placed %s: %w", publish.Stable.Name, err)
+	}
+
+	client := carry.New()
+	client.Repository = repository
+	client.Token = token
+
+	change := carry.Change{
+		Path:   path.Join(publish.Stable.Dir, publish.Stable.Name),
+		Branch: publish.Stable.Branch(),
+		Bytes:  placed,
+	}
+	return carry.Carry(ctx, out, on, change, client, client)
 }
 
 // runRelease says whether this repository is in a state a release may be cut
@@ -410,7 +474,7 @@ func runHarness(args []string, out io.Writer) error {
 }
 
 func usage(out io.Writer) {
-	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . publish\n       go run . release\n       go run . freshness\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
+	fmt.Fprintf(out, "usage: go run . gate [leg...]\n       go run . harness [requirement]\n       go run . sources\n       go run . publish [carry]\n       go run . release\n       go run . freshness\n       go run . sweep [raise]\n\nthe legs, in order: %s\nthe harness requirements, which are never legs: %s\n",
 		strings.Join(gate.Names(gate.Legs()), ", "),
 		strings.Join(harness.Names(harness.Requirements()), ", "))
 }

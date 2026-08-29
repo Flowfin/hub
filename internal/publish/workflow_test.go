@@ -75,7 +75,11 @@ func TestTheWorkflowRunsThePublicationAndNotSomethingBesideIt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading the publication workflow: %v", err)
 	}
-	if want := "run: go run . publish"; !strings.Contains(string(body), want) {
+	// The carrying word and not the bare verb. Without it the run builds the
+	// catalogue, places it in a checkout that goes with the runner, and
+	// proposes nothing - which is green, silent, and the exact state this
+	// workflow was changed to end.
+	if want := "run: go run . publish carry"; !strings.Contains(string(body), want) {
 		t.Errorf("%s carries no step running %q", publish.WorkflowPath, want)
 	}
 }
@@ -90,6 +94,19 @@ func TestTheGroupNamesWhereTheBytesGo(t *testing.T) {
 	elsewhere := publish.Target{Dir: publish.Stable.Dir, Name: "unstable.json"}
 	if elsewhere.Group() == publish.Stable.Group() {
 		t.Errorf("two targets under %s share the queue %q", publish.Stable.Dir, elsewhere.Group())
+	}
+}
+
+func TestTheStandingBranchNamesWhereTheBytesGo(t *testing.T) {
+	// Derived for the same reason the queue is, and against the same failure: a
+	// target moved to a second directory would otherwise go on proposing its
+	// change on a branch named after where it used to go.
+	if got, want := publish.Stable.Branch(), "place/docs/manifest.json"; got != want {
+		t.Errorf("the stable target is proposed on %q rather than %q", got, want)
+	}
+	elsewhere := publish.Target{Dir: publish.Stable.Dir, Name: "unstable.json"}
+	if elsewhere.Branch() == publish.Stable.Branch() {
+		t.Errorf("two targets under %s share the branch %q", publish.Stable.Dir, elsewhere.Branch())
 	}
 }
 
