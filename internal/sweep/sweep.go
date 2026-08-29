@@ -224,6 +224,54 @@ type Failure struct {
 // carrying a run id would raise an issue every night.
 func (f Failure) Key() string { return f.Workflow + " " + f.Conclusion }
 
+// recoveryConditions is what a run has to satisfy before Select reads it as
+// having cleared a failure of the same workflow.
+//
+// It is one list rather than a predicate here and a sentence in the raised
+// issue, because those two were typed separately and drifted. Body said a run
+// of the same workflow ending in success closed the issue, which is wider than
+// what this accepts: somebody read that, dispatched the workflow, watched it go
+// green, closed the issue, and the next sweep raised the same key again because
+// the newest scheduled run was still the failure. The body's next sentence then
+// told them that happens when the workflow is still failing, and they went
+// looking for a fault in a green workflow.
+//
+// So the condition is written once. recovers applies the predicates and Body
+// prints the sentences beside them, and a condition added to or taken off this
+// list moves both in the same edit.
+var recoveryConditions = []struct {
+	// Says is the condition in the words a reader of the raised issue gets.
+	Says string
+	// Holds is the same condition as Select applies it.
+	Holds func(r Run, defaultBranch string) bool
+}{
+	{
+		"ran on its schedule rather than being dispatched by hand, because a run somebody asked for has somebody in front of it and clears nothing here",
+		func(r Run, _ string) bool { return r.Event == "schedule" },
+	},
+	{
+		"is a run of the default branch, which is the branch a scheduled run runs",
+		func(r Run, defaultBranch string) bool { return r.Branch == defaultBranch },
+	},
+	{
+		"has ended, and ended in success",
+		func(r Run, _ string) bool { return r.Ended() && r.Conclusion == "success" },
+	},
+}
+
+// recovers reports whether r clears a failure of its own workflow.
+//
+// The caller decides that r is a run of a watched workflow and that it is newer
+// than the failure; every other part of the question is in recoveryConditions.
+func recovers(r Run, defaultBranch string) bool {
+	for _, c := range recoveryConditions {
+		if !c.Holds(r, defaultBranch) {
+			return false
+		}
+	}
+	return true
+}
+
 // Select reduces the runs to the distinct failures worth raising.
 //
 // Four filters, and each of them is a way this would otherwise be noise. Only
@@ -235,14 +283,13 @@ func (f Failure) Key() string { return f.Workflow + " " + f.Conclusion }
 //
 // And only a failure no later scheduled run has recovered from. The question
 // this package asks is whether the thing is failing now, which is the same
-// question the window in github.go is sized for, and the raised issue says so
-// in its own words: it closes on a run of the same workflow ending in success.
-// Without this filter the failure stays selectable for as long as it is in the
-// window, so the issue is raised again on the next sweep after it is closed,
-// under the same key, and the loop ends when the failure scrolls out rather
-// than when anything is fixed. A recovery is a scheduled run of the default
-// branch, because those are the runs this reports on; a run somebody asked for
-// has somebody in front of it and clears nothing here.
+// question the window in github.go is sized for, and the raised issue states
+// the same condition because it prints recoveryConditions rather than a second
+// copy of them. Without this filter the failure stays selectable for as long as
+// it is in the window, so the issue is raised again on the next sweep after it
+// is closed, under the same key, and the loop ends when the failure scrolls out
+// rather than when anything is fixed. What counts as a recovery is
+// recoveryConditions above, and it is not restated here.
 //
 // The recovery cannot be outside the window while the failure is inside it,
 // because the window holds the newest runs and the recovery is the newer of
@@ -258,10 +305,7 @@ func Select(watched []string, runs []Run, defaultBranch string) []Failure {
 	// line a failure has to be newer than to still be worth raising.
 	recovered := map[string]int{}
 	for _, r := range runs {
-		switch {
-		case !inSet[r.Workflow], r.Event != "schedule", r.Branch != defaultBranch:
-			continue
-		case !r.Ended(), r.Conclusion != "success":
+		if !inSet[r.Workflow] || !recovers(r, defaultBranch) {
 			continue
 		}
 		if r.Number > recovered[r.Workflow] {
@@ -355,7 +399,10 @@ func (f Failure) Title() string {
 //
 // It carries the key at column zero, the runs that showed the failure, and what
 // closing it means, because a tracking issue whose closing condition is unwritten
-// is one somebody closes to make the list shorter.
+// is one somebody closes to make the list shorter. The closing condition is
+// printed out of recoveryConditions, so it is the operator's own list of what
+// Select accepts and not a second copy of it that can go on saying something
+// wider after the operator narrows.
 func (f Failure) Body() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s %s\n\n", KeyPrefix, f.Key())
@@ -370,10 +417,16 @@ func (f Failure) Body() string {
 	}
 
 	b.WriteString("\n## What closes this\n\n")
-	b.WriteString("A run of the same workflow that ends in success, and whatever ")
-	b.WriteString("change made it do so. Closing this while the workflow is still ")
-	b.WriteString("failing raises it again on the next sweep, under the same key, ")
-	b.WriteString("which is the behaviour rather than a defect.\n\n")
+	fmt.Fprintf(&b, "A later run of `%s` that\n\n", f.Workflow)
+	for _, c := range recoveryConditions {
+		fmt.Fprintf(&b, "- %s\n", c.Says)
+	}
+	b.WriteString("\nand whatever change made it do so. Nothing else clears the key. ")
+	b.WriteString("Dispatching this workflow by hand and watching it go green does ")
+	b.WriteString("not: the newest scheduled run is still the one above, so the next ")
+	b.WriteString("sweep raises this again under the same key.\n\n")
+	b.WriteString("That is also what a re-raise means if the workflow really is still ")
+	b.WriteString("failing, which is the behaviour rather than a defect.\n\n")
 	b.WriteString("The line at the top is how a later sweep recognises this issue. ")
 	b.WriteString("Removing it makes the next failure raise a second issue.\n")
 	return b.String()

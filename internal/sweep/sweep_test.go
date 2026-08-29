@@ -283,3 +283,90 @@ func TestTheReportTellsAnEmptyWatchFromAQuietOne(t *testing.T) {
 		t.Error("a clean run reads as a run that watched nothing")
 	}
 }
+
+// The two tests below are the pair that holds Select's recovery predicate and
+// the sentence the raised issue states about it together. One walks the
+// operator, the other walks the text, and both walk the same list, so a
+// condition that exists on one side and not on the other has nowhere to hide.
+
+// breakers pairs each recovery condition with a run that fails that one and
+// satisfies every other. The pairing is checked rather than trusted: a mutation
+// that broke two conditions would prove the wrong thing about the second.
+var breakers = []struct {
+	name   string
+	breaks func(Run) Run
+}{
+	{"a success somebody dispatched", askedFor},
+	{"a success off the default branch", offBranch},
+	{"a run that has not ended", func(r Run) Run { r.Status = "in_progress"; r.Conclusion = ""; return r }},
+}
+
+func TestSelectRefusesAsARecoveryEveryRunTheBodyExcludes(t *testing.T) {
+	watched := []string{".github/workflows/nightly.yml"}
+	failed := run(watched[0], "failure", 30)
+
+	// A run satisfying every condition does clear the failure, so the cases
+	// below are a filter refusing things rather than one that reports nothing.
+	clean := run(watched[0], "success", 31)
+	if !recovers(clean, "main") {
+		t.Fatalf("a scheduled success on the default branch is not read as a recovery: %+v", clean)
+	}
+	if got := Select(watched, []Run{failed, clean}, "main"); len(got) != 0 {
+		t.Fatalf("a scheduled success on the default branch did not clear the failure: %+v", got)
+	}
+
+	if len(breakers) != len(recoveryConditions) {
+		t.Fatalf("%d condition(s) are stated and %d are proven, so one of them is refused by nothing",
+			len(recoveryConditions), len(breakers))
+	}
+
+	for i, b := range breakers {
+		t.Run(b.name, func(t *testing.T) {
+			later := b.breaks(run(watched[0], "success", 31))
+
+			for j, c := range recoveryConditions {
+				holds := c.Holds(later, "main")
+				if j == i && holds {
+					t.Fatalf("the run still satisfies the condition it is meant to break: %q", c.Says)
+				}
+				if j != i && !holds {
+					t.Fatalf("the run breaks a second condition as well: %q", c.Says)
+				}
+			}
+
+			if recovers(later, "main") {
+				t.Errorf("a run breaking %q is read as a recovery", recoveryConditions[i].Says)
+			}
+			if got := Select(watched, []Run{failed, later}, "main"); len(got) != 1 {
+				t.Errorf("selected %d failure(s), want 1: a run breaking %q cleared the key",
+					len(got), recoveryConditions[i].Says)
+			}
+		})
+	}
+}
+
+func TestTheRaisedBodyStatesEveryConditionSelectApplies(t *testing.T) {
+	f := Failure{
+		Workflow:   ".github/workflows/nightly.yml",
+		Conclusion: "failure",
+		Runs:       []Run{run(".github/workflows/nightly.yml", "failure", 32)},
+	}
+	body := f.Body()
+
+	// Printed so the sentence a raised issue carries can be read without one
+	// being raised, which is the whole subject of this test.
+	t.Logf("the body a raised issue carries:\n%s", body)
+
+	for _, c := range recoveryConditions {
+		if !strings.Contains(body, c.Says) {
+			t.Errorf("the body does not state the condition %q, so a reader is told less than Select applies", c.Says)
+		}
+	}
+
+	// The one the drift cost a reader: the body has to say in its own words
+	// that a dispatched green run is not the recovery, because that is the
+	// thing somebody does after reading it.
+	if !strings.Contains(body, "Dispatching this workflow by hand") {
+		t.Errorf("the body does not say that a dispatched run does not clear the key: %q", body)
+	}
+}
