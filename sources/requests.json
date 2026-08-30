@@ -2,7 +2,7 @@
     "account": "Flowfin",
     "repository": "jellyfin-plugin-requests",
     "slug": "requests",
-    "stable_tags": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?(-stable)?$",
+    "stable_tags": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?(-jf[0-9]+)?(-stable)?$",
     "enabled": true,
-    "note": "The pattern is the finished-release tagging convention, measured against the longest release history in the set in decisions/channel-model.md: an optional leading v, three or four numeric components, and an optional -stable suffix, which is why the tag rather than the release's pre-release flag decides the channel. It is here so that a finished release enters the catalogue on the day it is tagged and a test build does not. What it selects today is read from the run and from the published catalogue rather than written down here, because a count in this field is wrong again on the next release."
+    "note": "The pattern is the finished-release tagging convention, measured against the longest release history in the set in decisions/channel-model.md: an optional leading v, three or four numeric components, an optional per-server-line segment (-jf12, -jf13, ...) from the one-version-many-lines decision on jellyfin-plugin-requests#110, and an optional -stable suffix, which is why the tag rather than the release's pre-release flag decides the channel. The line segment is here so a -jf12-stable release enters the catalogue on the day it is tagged instead of never; the catalogue still separates lines by targetAbi, the tag segment only names which line a file came from. What it selects today is read from the run and from the published catalogue rather than written down here, because a count in this field is wrong again on the next release."
 }
