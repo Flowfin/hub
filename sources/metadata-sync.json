@@ -4,5 +4,5 @@
     "slug": "metadata-sync",
     "stable_tags": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?(-stable)?$",
     "enabled": true,
-    "note": "Has published no release. Declared and enabled so that the catalogue grows on the day it publishes its first one, with no change here.. The pattern is the one measured against the only long release history in the set; it is a starting point for a repository with no tags to check it against, and the first release it publishes is when it is confirmed."
+    "note": "Declared and enabled before this repository had tagged anything, so that the catalogue grows on the day it publishes its first release and nothing here has to change for it. The pattern is the finished-release tagging convention, measured against the longest release history in the set in decisions/channel-model.md: an optional leading v, three or four numeric components, and an optional -stable suffix, which is why the tag rather than the release's pre-release flag decides the channel. A repository with no tags of its own cannot check that pattern, so it is a starting point that the first release published here confirms or corrects. What it selects today is read from the run rather than written down here."
 }
