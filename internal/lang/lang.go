@@ -32,8 +32,8 @@ const Dir = site.Dir
 
 // Tag is the language the site publishes in, as a BCP 47 primary subtag.
 //
-// English, decided by the maintainer on 2026-08-09 in entry 3 of #1 and recorded
-// in decisions/site-language.md. That file is where the reasoning is; this
+// English, which I decided on 2026-08-09 in entry 3 of #1 and recorded in
+// decisions/site-language.md. That file is where the reasoning is; this
 // constant is what a machine reads, and changing one without the other is what
 // this sentence exists against.
 const Tag = "en"

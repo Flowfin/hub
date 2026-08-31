@@ -86,5 +86,5 @@ For answers to common questions about this code of conduct, see the FAQ at [http
 
 The address above is the security advisory form because it is the only private
 channel this repository has. A report sent there about conduct is read as a
-conduct report and handled under this document, not as a vulnerability. It is
-private to the maintainers.
+conduct report and handled under this document, not as a vulnerability. It
+reaches me and nobody else.
