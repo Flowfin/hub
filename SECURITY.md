@@ -9,7 +9,7 @@ server that has the address configured. Reports are handled ahead of other work.
 Report privately, through
 [private vulnerability reporting](https://github.com/Flowfin/hub/security/advisories/new),
 which is "Report a vulnerability" on the Security tab of this repository. It is
-enabled and it goes to the maintainers only.
+enabled and it reaches me and nobody else.
 
 Please do not open a public issue for something exploitable. A public issue is
 opened once a fix is out.

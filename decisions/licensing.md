@@ -9,26 +9,26 @@ That is entry 1 of #1, and it is the last entry of that issue to be answered.
 
 ## What was decided
 
-**The code is AGPL-3.0-or-later.** The licence was taken by the maintainer on
-2026-08-08 in entry 1 of #1 and applied to every board that carried none. The
-`or-later` half is the option the licence's own application notice offers rather
-than an addition to it, and it was made precise fleet-wide on 2026-08-09.
+**The code is AGPL-3.0-or-later.** I took the licence on 2026-08-08 in entry 1
+of #1 and applied it to every board that carried none. The `or-later` half is
+the option the licence's own application notice offers rather than an addition
+to it, and it was made precise fleet-wide on 2026-08-09.
 
 Entry 1 carried two answers naming different variants of the same licence for a
 while: `AGPL-3.0-or-later` on 2026-08-09 and `AGPL-3.0-only` on 2026-08-11,
 neither referring to the other. That was recorded in the issue on 2026-08-11 and
-settled by the maintainer on 2026-08-24, who read the `-only` answer as a slip
-and kept the variant the tree already stated. So this file states one variant and
-does not carry a live disagreement forward.
+settled on 2026-08-24, where I read the `-only` answer as a slip and kept the
+variant the tree already stated. So this file states one variant and does not
+carry a live disagreement forward.
 
 **The design system and the words on the published pages are CC-BY-4.0.**
-Decided by the maintainer on 2026-08-11, with the reason: a design system other
-projects are invited to adopt must not raise code-licence questions for the
-adopter. Attribution stays required.
+I decided this on 2026-08-11, with the reason: a design system other projects
+are invited to adopt must not raise code-licence questions for the adopter.
+Attribution stays required.
 
-**The form is one declaration by parts, not a header in each file.** Decided by
-the maintainer on 2026-08-24, because the boundary does not run between files and
-a per-file header would have to claim it does.
+**The form is one declaration by parts, not a header in each file.** I decided
+this on 2026-08-24, because the boundary does not run between files and a
+per-file header would have to claim it does.
 
 ## Why a path table cannot carry it
 
@@ -155,10 +155,10 @@ legs are printed by `go run .` and none of them has a licence as its subject.
 
 Entry 1 of #1 raised this in its own body: whether the plugin repositories the
 catalogue lists should carry the same licence as the catalogue. They do not, and
-that is an answer rather than an omission. The maintainer decided it on
-2026-08-08 in the same comment that took AGPL-3.0 for this tree: the twelve
-Jellyfin plugins stay GPL-3.0, because Jellyfin itself is under GPL-2.0 and
-AGPL-3.0 is incompatible with it.
+that is an answer rather than an omission. I decided it on 2026-08-08 in the
+same comment that took AGPL-3.0 for this tree: the twelve Jellyfin plugins stay
+GPL-3.0, because Jellyfin itself is under GPL-2.0 and AGPL-3.0 is incompatible
+with it.
 
 All twelve read that way today:
 

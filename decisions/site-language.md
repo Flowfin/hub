@@ -6,11 +6,11 @@ open question rather than a defect, and it is entry 3 of #1.
 
 ## What was decided
 
-The published pages are in English. Decided by the maintainer on 2026-08-09 in
-entry 3 of #1, together with the reasoning: a Jellyfin plugin catalogue is read
-mostly by people who arrive in English, and everything else on the path to an
-operator was already planned in that language, so a German page in front of it
-would have been the only exception in the whole route.
+The published pages are in English. I decided this on 2026-08-09 in entry 3 of
+#1, together with the reasoning: a Jellyfin plugin catalogue is read mostly by
+people who arrive in English, and everything else on the path to an operator was
+already planned in that language, so a German page in front of it would have
+been the only exception in the whole route.
 
 The price is named there and is paid once: pages that were good as they were get
 rewritten.
