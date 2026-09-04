@@ -1,13 +1,40 @@
 [
     {
+        "guid": "5c37c448-9d94-4fdd-a621-4238b859165b",
+        "name": "Metadata Sync",
+        "description": "Metadata Sync copies chosen metadata fields between two Jellyfin servers that an operator has paired by hand. Nothing moves until that pairing exists, and only the fields the field register declares ever move.\nIt never copies media files, artwork or any other library bytes. File replication is a permanent non-goal rather than a feature that is still coming: this plugin reads and writes metadata through the server's own library calls and carries no file transfer of any kind.",
+        "overview": "Move chosen metadata fields between two paired Jellyfin servers.",
+        "owner": "Flowfin",
+        "category": "Metadata",
+        "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-metadata-sync/master/img/logo.png",
+        "versions": [
+            {
+                "version": "0.1.0.0",
+                "changelog": "Not yet released.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-metadata-sync/releases/download/0.1.0.0-stable/metadata-sync_0.1.0.0.zip",
+                "checksum": "b392689dcaf5809418340a820208fd38",
+                "timestamp": "2026-09-03T10:25:30Z"
+            }
+        ]
+    },
+    {
         "guid": "0f9c9107-b31b-459e-81fa-6d35dac25e79",
         "name": "Requests",
-        "description": "A user who cannot find something asks for it from inside Jellyfin rather than through a message to whoever runs the server. The ask lands in a queue an administrator works through, and the person who asked can see what happened to it.\nThis is not finished. A user can ask for a title and follow what happened to their own asks, and an administrator answers them in a queue. There is no gesture that finds a title the server does not have unless a browsing sibling plugin supplies one, and nothing here downloads anything: approving a request moves a record, and whatever the operator already runs is what fetches. The packaged install has not been tried on a server on either claimed line.",
+        "description": "A user who cannot find something asks for it from inside Jellyfin rather than through a message to whoever runs the server. The ask lands in a queue an administrator works through, and the person who asked can see what happened to it.\nThis is not finished. A user can ask for a title and follow what happened to their own asks, and an administrator answers them in a queue. There is no gesture that finds a title the server does not have unless a browsing sibling plugin supplies one, and nothing here downloads anything: approving a request moves a record, and whatever the operator already runs is what fetches. One published release has been installed on a 10.11.11 server and answered as active. On 10.11.0, the floor this package declares, the same release does not load at all: the server reports it as not supported. Do not install this on a 10.11.0 server.",
         "overview": "A user asks the server for a film or a series, an administrator answers it in a queue. Under development.",
         "owner": "Flowfin",
         "category": "General",
         "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-requests/master/img/logo.png",
         "versions": [
+            {
+                "version": "0.3.0.0",
+                "changelog": "changelog",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-requests/releases/download/0.3.0.0-stable/requests_0.3.0.0.zip",
+                "checksum": "840ca9cb5b496d45ae4fc2d6aee04874",
+                "timestamp": "2026-09-03T10:25:43Z"
+            },
             {
                 "version": "0.2.0.0",
                 "changelog": "changelog",
@@ -27,6 +54,25 @@
         ]
     },
     {
+        "guid": "130cc961-461b-49fd-8a3e-f9eb46db0716",
+        "name": "Server Pairing",
+        "description": "Server Pairing links two Jellyfin servers under a credential of its own, which is accepted by this plugin's pairing surface and by nothing else on either server. An administrator on each side confirms the pairing by hand, and the plugin holds the resulting key material and the user mapping that goes with it.\nIt carries no syncing of its own. Watch state, playlists and everything else that might move between two servers belong to the plugins that build on this one. A pairing is between two servers under one operator, and pairing to anything that is not a Jellyfin server is out of scope.",
+        "overview": "Pairs this Jellyfin server with a second one, so plugins on both sides can work across the pair.",
+        "owner": "Flowfin",
+        "category": "Administration",
+        "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-server-pairing/master/img/logo.png",
+        "versions": [
+            {
+                "version": "0.1.0.0",
+                "changelog": "The first release. A server that installs it answers on the six pairing paths the specification fixes and refuses every request that reaches them. Nothing verifies yet, because a server has no key to verify against: the check that reads an arriving request looks the pairing up in this server's key store, and nothing puts a key there, since there is no page and no endpoint an administrator can open an enrolment from. Two servers cannot be paired with this version.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-server-pairing/releases/download/0.1.0.0-stable/server-pairing_0.1.0.0.zip",
+                "checksum": "346e0c7097c2c8656b2ef5dd9084d142",
+                "timestamp": "2026-09-03T10:25:19Z"
+            }
+        ]
+    },
+    {
         "guid": "29e90267-52ee-4bec-b4fb-870b8f5ddc53",
         "name": "Playback Statistics",
         "description": "Records what was played on this server and shows it back as statistics: usage over time, the clients and devices people play from, and how often the server had to transcode. Personal detail is visible only to the user it is about unless that user chooses otherwise, and server-wide views name nobody.",
@@ -42,6 +88,25 @@
                 "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-stats/releases/download/0.1.0.0-stable/playback-statistics_0.1.0.0.zip",
                 "checksum": "69dbb5648e0ef0ec73e1cf087d6f8e2d",
                 "timestamp": "2026-08-24T19:30:22Z"
+            }
+        ]
+    },
+    {
+        "guid": "6e1631d7-aa49-494d-a23b-d5785853fc0a",
+        "name": "Watchlist",
+        "description": "Adds a watchlist to Jellyfin. Each user gets a private list, held on the server, so it is the same list on every device that user signs in from. The list is projected into a playlist owned by that user, which is a surface every stock client already renders, so nothing has to be patched, forked or installed alongside it.",
+        "overview": "A private per-user watchlist kept on the server and shown by clients that were never changed.",
+        "owner": "Flowfin",
+        "category": "General",
+        "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-watchlist/master/img/logo.png",
+        "versions": [
+            {
+                "version": "0.1.0.0",
+                "changelog": "Not released. Nothing has been published from this repository yet, so there is nothing to install, nothing to upgrade from, and nothing a user has to do.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-watchlist/releases/download/0.1.0.0-stable/watchlist_0.1.0.0.zip",
+                "checksum": "27208dbb15b7f33b1f35766e19e2c34b",
+                "timestamp": "2026-09-03T10:26:50Z"
             }
         ]
     }
