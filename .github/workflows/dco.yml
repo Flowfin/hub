@@ -59,11 +59,16 @@ jobs:
             # self-sign; exempt them, as the DCO App does. An explicit allowlist of
             # GitHub's own bot identities - not a `*[bot]@...` glob - so a human
             # cannot self-exempt by crafting a `[bot]`-shaped author email.
+            # A bot cannot certify the DCO, so an App this repository runs is skipped
+            # like Dependabot and the run itself. The last pattern is any GitHub App:
+            # the publisher of the catalogue commits as one since #167, and every
+            # App's address ends the same way.
             case "$author_email" in
               *"+dependabot[bot]@users.noreply.github.com" \
               | "dependabot[bot]@users.noreply.github.com" \
               | *"+github-actions[bot]@users.noreply.github.com" \
-              | "github-actions[bot]@users.noreply.github.com")
+              | "github-actions[bot]@users.noreply.github.com" \
+              | *"[bot]@users.noreply.github.com")
                 echo "skip  $sha (bot: $author_email)"; continue ;;
             esac
             expected="Signed-off-by: ${author_name} <${author_email}>"
