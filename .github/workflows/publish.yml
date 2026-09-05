@@ -78,11 +78,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      # The standing branch and the commit on it, both made through the API.
-      contents: write
-      # The one request the run opens, and the read that finds the one already
-      # open so a second is not opened beside it.
-      pull-requests: write
+      # Only the checkout reads with the run's own token. The branch, the commit
+      # and the request are made with the publisher's token minted below, whose
+      # scopes are the App's and not this job's (#167).
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -93,9 +92,29 @@ jobs:
           # go.mod is the authority for the version floor, so it is read rather
           # than restated here where it would drift.
           go-version-file: go.mod
+      # A request opened with the run's own token triggers no workflow, so the
+      # nineteen required checks never arrived and a hand had to close and reopen
+      # every catalogue request (#167). The publisher is a GitHub App installed on
+      # this repository alone, with contents and pull requests and nothing else;
+      # its key is a secret here and never in the tree, and the token minted from
+      # it lives for one hour. A request it opens is an event like any other.
+      - name: Mint the publisher's token
+        id: publisher
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.PUBLISHER_APP_ID }}
+          private-key: ${{ secrets.PUBLISHER_APP_PRIVATE_KEY }}
+          # The token is cut to this repository and to the two rights the run
+          # uses, whatever the installation would allow; zizmor's github-app
+          # audit refuses a token issued wider than its work.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
       - name: Build the catalogue, place it, and propose it
         run: go run . publish carry
         env:
-          # The run's own token, carrying the two scopes granted on this job. It
-          # is what reads the declared sources, and what opens the request.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The publisher's token. It reads the declared sources, writes the
+          # standing branch and its commit, which GitHub signs for an App as it
+          # does for the run's own token, and opens the request.
+          GITHUB_TOKEN: ${{ steps.publisher.outputs.token }}
