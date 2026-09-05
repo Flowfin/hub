@@ -6,8 +6,9 @@
 # step below is `go run . gate <leg>`, so what the job checks and what the shell
 # checks cannot drift apart.
 #
-# The job names are what a pull request shows and what the ruleset in #48 would
-# require, so they carry a prefix. The bare words build, deploy and
+# The job names are what a pull request shows and what the ruleset on main
+# requires - every leg here is a required context today - so they carry a
+# prefix. The bare words build, deploy and
 # report-build-status are already in use on main by the Pages deployment, which
 # has no file in this tree. internal/gate.JobNamePrefix holds the prefix and the
 # suite refuses a leg with no job here and a job here with no leg.

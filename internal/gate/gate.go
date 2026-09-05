@@ -63,7 +63,9 @@ type Leg struct {
 //	gh api repos/Flowfin/hub/actions/workflows --jq '.workflows[] | "\(.name)\t\(.path)"'
 //
 // A leg named build would therefore report under a name this tree does not
-// control, and the ruleset in #48 would require that one instead of this one.
+// control, and the ruleset on main would require that one instead of this one.
+// That ruleset requires every leg here by its prefixed name, so the collision
+// is a live one rather than one waiting for a requirement to arrive.
 const JobNamePrefix = "Gate: "
 
 // CheckRunName is the name the leg's job reports under.

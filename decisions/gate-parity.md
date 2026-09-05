@@ -67,8 +67,12 @@ side does:
 The left side is the workflow's job names, and it cannot disagree with the leg
 list: `internal/gate`'s suite refuses a leg with no job and a job with no leg.
 
-Widening the required set is #48 and is not done here; recording that the gap
-exists is.
+Widening the required set was #48, which closed as completed on 2026-08-24, and
+the command above printed nothing on 2026-09-05: every leg this workflow declares
+is a required name today. That is a reading of one day and not a property of the
+tree, because nothing here adds a name to a ruleset and nothing here reads one
+back, so a leg landing tomorrow reopens the gap in silence. Run the command
+rather than trusting this paragraph.
 
 ## The legs, one line each
 
@@ -266,8 +270,10 @@ gate's own report says on every run that none of them ran.
 
 ## What is not settled here
 
-Which of these becomes a required name on `main` is #48. This document says what
-each leg is; a ruleset is what makes one block, and nothing in this tree can read
-a ruleset. The list above was derived by running the commands at the top on
-2026-08-09. Run them again the next time somebody needs the list; what they
-print then is the answer.
+Which of these becomes a required name on `main` was #48 and is answered: on
+2026-09-05 every leg was required. What is not settled is the half that outlasts
+the answer. This document says what each leg is; a ruleset is what makes one
+block, and nothing in this tree can read a ruleset, so neither this file nor any
+check here notices the day the two disagree again. The list above was derived by
+running the commands at the top on 2026-08-09. Run them again the next time
+somebody needs the list; what they print then is the answer.
