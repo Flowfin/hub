@@ -1,5 +1,24 @@
 [
     {
+        "guid": "8227de33-0101-48a3-951d-2bf921709e48",
+        "name": "Discover",
+        "description": "This is being built so that a user can look through titles the server does not hold and see them alongside what it does hold.\nAlmost none of that exists yet. What installs today is the plugin itself, a configuration page that carries no settings, and an entry called Discover that this plugin offers the server for browsing. Nothing contacts a metadata source and nothing is kept about any title, so there is nothing behind that entry to look at.\nTwo things it will not do when it is built. It does not acquire anything: no downloading, no indexers, no queue. And it does not handle a request for a title beyond passing on that somebody asked, which is a separate plugin's job; this one is meant to be useful on a server where no such plugin is installed.",
+        "overview": "Browse titles a server does not have. Under development, and the Discover entry it adds today is empty.",
+        "owner": "Flowfin",
+        "category": "General",
+        "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-discover/master/img/logo.png",
+        "versions": [
+            {
+                "version": "0.1.0.0",
+                "changelog": "changelog",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-discover/releases/download/0.1.0.0-stable/discover_0.1.0.0.zip",
+                "checksum": "640a862fce0644302a585550cdccec1e",
+                "timestamp": "2026-09-04T20:47:39Z"
+            }
+        ]
+    },
+    {
         "guid": "5c37c448-9d94-4fdd-a621-4238b859165b",
         "name": "Metadata Sync",
         "description": "Metadata Sync copies chosen metadata fields between two Jellyfin servers that an operator has paired by hand. Nothing moves until that pairing exists, and only the fields the field register declares ever move.\nIt never copies media files, artwork or any other library bytes. File replication is a permanent non-goal rather than a feature that is still coming: this plugin reads and writes metadata through the server's own library calls and carries no file transfer of any kind.",
@@ -8,6 +27,14 @@
         "category": "Metadata",
         "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-metadata-sync/master/img/logo.png",
         "versions": [
+            {
+                "version": "0.1.1.0",
+                "changelog": "Fixed: compiled the 10.11 package against the floor it promises, so this version loads on every 10.11 server from 10.11.0 up; 0.1.0.0 bound the server assemblies at 10.11.11.0 and was refused below 10.11.11 (#340). The release note for each version is on its GitHub release page, at https://github.com/Flowfin/jellyfin-plugin-metadata-sync/releases",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-metadata-sync/releases/download/0.1.1.0-stable/metadata-sync_0.1.1.0.zip",
+                "checksum": "ec56a026ff999b32f9a965c2fa9d7cfd",
+                "timestamp": "2026-09-04T11:16:42Z"
+            },
             {
                 "version": "0.1.0.0",
                 "changelog": "Not yet released.",
@@ -27,6 +54,14 @@
         "category": "General",
         "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-requests/master/img/logo.png",
         "versions": [
+            {
+                "version": "0.3.0.0",
+                "changelog": "changelog",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-requests/releases/download/0.3.0.0-jf12-stable/requests_0.3.0.0.zip",
+                "checksum": "40244c20cdb86c936f488cb2f622dd8b",
+                "timestamp": "2026-09-03T10:26:05Z"
+            },
             {
                 "version": "0.3.0.0",
                 "changelog": "changelog",
@@ -63,12 +98,58 @@
         "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-server-pairing/master/img/logo.png",
         "versions": [
             {
+                "version": "0.1.1.0",
+                "changelog": "The first release. A server that installs it answers on the six pairing paths the specification fixes and refuses every request that reaches them. Nothing verifies yet, because a server has no key to verify against: the check that reads an arriving request looks the pairing up in this server's key store, and nothing puts a key there, since there is no page and no endpoint an administrator can open an enrolment from. Two servers cannot be paired with this version.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-server-pairing/releases/download/0.1.1.0-stable/server-pairing_0.1.1.0.zip",
+                "checksum": "ea7114749bf945a7dd19d2b4a1e74f44",
+                "timestamp": "2026-09-04T12:51:27Z"
+            },
+            {
                 "version": "0.1.0.0",
                 "changelog": "The first release. A server that installs it answers on the six pairing paths the specification fixes and refuses every request that reaches them. Nothing verifies yet, because a server has no key to verify against: the check that reads an arriving request looks the pairing up in this server's key store, and nothing puts a key there, since there is no page and no endpoint an administrator can open an enrolment from. Two servers cannot be paired with this version.",
                 "targetAbi": "10.11.0.0",
                 "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-server-pairing/releases/download/0.1.0.0-stable/server-pairing_0.1.0.0.zip",
                 "checksum": "346e0c7097c2c8656b2ef5dd9084d142",
                 "timestamp": "2026-09-03T10:25:19Z"
+            }
+        ]
+    },
+    {
+        "guid": "a3703f07-f83d-49a0-a09f-50b890a2baac",
+        "name": "Share Links",
+        "description": "Share Links does one thing: an operator picks one item out of the library and gets a link to it for a guest they have invited.\nSharing is designed for invited guests of the server operator. There are no anonymous public links. A guest signs in to the server, and the share reaches only the one item it names. A share expires, and an operator can revoke it before it does.\nShares are created, listed and revoked from the plugin's page in the server dashboard. Nothing is added to the web client and no mail is sent, so the operator passes the link to the guest themselves.",
+        "overview": "Share a single library item with invited guests of your server, through a link that expires and can be revoked.",
+        "owner": "Flowfin",
+        "category": "Administration",
+        "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-share-links/master/img/logo.png",
+        "versions": [
+            {
+                "version": "0.1.0.0",
+                "changelog": "The notes for each release are in the GitHub release for its tag, at https://github.com/Flowfin/jellyfin-plugin-share-links/releases.",
+                "targetAbi": "10.11.9.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-share-links/releases/download/0.1.0.0-stable/share-links_0.1.0.0.zip",
+                "checksum": "6a3261b3e4b6ab6bd4de787d994aa0bb",
+                "timestamp": "2026-09-04T15:52:36Z"
+            }
+        ]
+    },
+    {
+        "guid": "70dd8311-1053-4eb7-8406-8df766b2d040",
+        "name": "Smart Collections",
+        "description": "A Jellyfin collection is normally a list an administrator keeps by hand. This is being built so a collection is described once as a rule over library metadata, and then holds whatever matches the rule as the library changes.\nIt is not built yet. Installing it today does nothing.",
+        "overview": "Collections filled from a rule over library metadata. Under development, and installing it does nothing yet.",
+        "owner": "Flowfin",
+        "category": "General",
+        "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-smart-collections/master/img/logo.png",
+        "versions": [
+            {
+                "version": "0.1.0.0",
+                "changelog": "0.1.0.0 is the first release. It installs, registers its services and subscribes to the library change events; it creates no collection and fills none, because the rule evaluation that would do so is not written yet.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-smart-collections/releases/download/0.1.0.0-stable/smart-collections_0.1.0.0.zip",
+                "checksum": "af6eeadcbb24b4ef645f02967432ad88",
+                "timestamp": "2026-09-04T20:42:29Z"
             }
         ]
     },
@@ -100,6 +181,14 @@
         "category": "General",
         "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-watchlist/master/img/logo.png",
         "versions": [
+            {
+                "version": "0.1.1.0",
+                "changelog": "Installs on every 10.11 server the manifest promises, which 0.1.0.0 did not. That release declares `targetAbi 10.11.0.0`, the floor of the 10.11 line, and its assembly binds the server libraries at `10.11.11.0`, because the build compiled against the newest package on the line instead of the one the floor names. A server between the two offers the plugin on the strength of the declared floor and then refuses every type in it, so the plugin appears in the catalogue, installs, and shows as `NotSupported` with `Could not load file or assembly 'MediaBrowser.Common, Version=10.11.11.0'` in the server log. Read on two containers before and after: 10.11.0 answered `NotSupported` for 0.1.0.0 and `Active` for this build, and 10.11.11 answered `Active` for both. Nothing about the plugin's behaviour changed. If you are on 10.11.11 or newer there is nothing here for you; if your server is older than 10.11.11, this is the first version you can use.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-watchlist/releases/download/0.1.1.0-stable/watchlist_0.1.1.0.zip",
+                "checksum": "24fe7e7ff38f348da39331404f2a2656",
+                "timestamp": "2026-09-04T12:52:42Z"
+            },
             {
                 "version": "0.1.0.0",
                 "changelog": "Not released. Nothing has been published from this repository yet, so there is nothing to install, nothing to upgrade from, and nothing a user has to do.",
