@@ -16,6 +16,12 @@
 // is satisfied by one line while the other has silently gone missing, and a
 // server on the missing line sees a plugin with no installable version at all.
 //
+// A release is named here by the version its tag carries and not by the whole
+// tag. One version is released once per live server line, each under its own
+// tag, so the newest finished release reaches the catalogue under a different
+// tag on each line and a comparison of whole tags refuses a catalogue that is
+// current. releaseVersion is where that is decided and what it costs.
+//
 // It fails closed everywhere. A body that does not parse, a catalogue with no
 // plugins, a plugin the catalogue does not list: each is a refusal and none is a
 // pass with a shrug. The likeliest real failure of this check is a network blip,
@@ -41,6 +47,11 @@ type Expected struct {
 	// Tag is the newest finished release's tag. The finished set is
 	// decisions/channel-model.md's, read from the tag rather than from the
 	// release's pre-release flag.
+	//
+	// What is compared against a catalogue entry is the release this tag names
+	// rather than the tag itself, which releaseVersion below decides and says
+	// why. The whole tag is still carried, because it is what a refusal quotes
+	// and what somebody repairing one goes looking for.
 	Tag string
 }
 
@@ -124,9 +135,10 @@ func judgeOne(plugins []plugin, want Expected) error {
 			want.Slug, want.Path)
 	}
 
+	wanted := releaseVersion(want.Tag)
 	var missing []string
 	for target, tags := range tagsPerTarget {
-		if !tags[want.Tag] {
+		if !carries(tags, wanted) {
 			missing = append(missing, fmt.Sprintf("%s (it carries %s)", target, joinSorted(tags)))
 		}
 	}
@@ -136,6 +148,64 @@ func judgeOne(plugins []plugin, want Expected) error {
 	sort.Strings(missing)
 	return fmt.Errorf("%s: the newest finished release %s is not listed under %s",
 		want.Slug, want.Tag, strings.Join(missing, ", "))
+}
+
+// carries says whether a target line offers the release wanted names.
+//
+// The comparison is per tag rather than over a set of stripped tags, because
+// two tags naming one release differ only in segments releaseVersion drops, and
+// a set of those would have to be built to be thrown away.
+func carries(tags map[string]bool, wanted string) bool {
+	for tag := range tags {
+		if releaseVersion(tag) == wanted {
+			return true
+		}
+	}
+	return false
+}
+
+// releaseVersion is the part of a tag that says WHICH release it is, with the
+// parts that say where the release goes removed.
+//
+// A tag admitted by a declaration's stable_tags pattern carries three kinds of
+// thing, and only one of them identifies the release. An optional leading v is
+// spelling. A trailing -stable names the channel, which
+// decisions/channel-model.md reads out of the tag rather than out of the
+// release's flag. And a -jf12 segment names the server line a file was cut for,
+// under the one-version-many-lines decision the requests declaration's note
+// carries: one version is released once per live line, each release under its
+// own tag, and the catalogue tells the lines apart by targetAbi rather than by
+// that segment.
+//
+// So one release version reaches the catalogue under several tags, and a check
+// asking for one tag under every target line asks for a tag that was never cut
+// for most of them. That is what this repairs, and it is the whole of the
+// change: the numeric components are compared and the decoration is not.
+//
+// What it gives up is the ability to tell two finished releases apart that
+// share a version and differ only in a suffix. Under the decision above that is
+// the intended reading, because such a pair IS one version cut for two lines.
+// A pair that is not - one version retagged for some other reason - is read as
+// current here when only one of the two is published, and no reading of a tag
+// separates those two cases.
+//
+// It refuses nothing this rule did not refuse before. Equal tags have equal
+// versions, so every catalogue the whole-tag comparison passed is passed here
+// too, and the change can only stop refusals rather than start them.
+//
+// A tag with no numeric run at its front is handed back whole. Returning the
+// empty string for it would make every such tag equal to every other, which is
+// the one direction a comparison here must not fail in.
+func releaseVersion(tag string) string {
+	rest := strings.TrimPrefix(tag, "v")
+	end := 0
+	for end < len(rest) && (rest[end] == '.' || (rest[end] >= '0' && rest[end] <= '9')) {
+		end++
+	}
+	if end == 0 {
+		return tag
+	}
+	return rest[:end]
 }
 
 func joinSorted(set map[string]bool) string {
