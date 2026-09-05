@@ -151,3 +151,80 @@ func TestEveryFailureIsNamedRatherThanTheFirst(t *testing.T) {
 		}
 	}
 }
+
+// TestOneVersionCutPerLineIsCurrent is the failure this file was changed for.
+// The catalogue is current: the newest finished release is published on both
+// lines, each under the tag that line's file was cut from. A comparison of
+// whole tags refuses it, and every server on the newer line is offered a build
+// the check has just called missing.
+//
+// The tags are the ones the scheduled run of 2026-09-05 read, with the plugin
+// name this file uses everywhere else.
+func TestOneVersionCutPerLineIsCurrent(t *testing.T) {
+	body := published(
+		versionEntry(declared, "0.3.0.0-jf12-stable", "12.0.0.0"),
+		versionEntry(declared, "0.3.0.0-stable", "10.11.0.0"),
+		versionEntry(declared, "0.2.0.0-stable", "10.11.0.0"),
+	)
+	for _, newest := range []string{"0.3.0.0-stable", "0.3.0.0-jf12-stable"} {
+		// Either tag may be the newest one the release list answers with:
+		// the two were published thirteen seconds apart and the order the
+		// API returns them in is not this check's to decide.
+		if err := Judge(body, []Expected{{Slug: "widget", Path: declared, Tag: newest}}); err != nil {
+			t.Errorf("a catalogue carrying the newest release on both lines was refused, newest %s: %v", newest, err)
+		}
+	}
+}
+
+// TestALineBehindTheNewestVersionIsStillRefused is the other half, and it is
+// the property the change must not have bought its way out of. The line tags
+// are the same shape as above and the newer line is a version behind, which is
+// exactly what the check exists to catch.
+func TestALineBehindTheNewestVersionIsStillRefused(t *testing.T) {
+	body := published(
+		versionEntry(declared, "0.3.0.0-jf12-stable", "12.0.0.0"),
+		versionEntry(declared, "0.4.0.0-stable", "10.11.0.0"),
+	)
+	err := Judge(body, []Expected{{Slug: "widget", Path: declared, Tag: "0.4.0.0-stable"}})
+	if err == nil {
+		t.Fatal("a target line a version behind was read as current")
+	}
+	for _, want := range []string{"widget", "0.4.0.0-stable", "12.0.0.0"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the refusal does not carry %q: %v", want, err)
+		}
+	}
+	if strings.Contains(err.Error(), "10.11.0.0 (") {
+		t.Errorf("the refusal blames the target line that is current: %v", err)
+	}
+}
+
+// TestTagsThatNameDifferentReleasesAreNotConflated holds the edge the version
+// comparison could have flattened. A leading v is spelling and is dropped; a
+// numeric run that differs is a different release whatever follows it; and a
+// tag with no numeric run at its front is compared whole rather than being made
+// equal to every other such tag.
+func TestTagsThatNameDifferentReleasesAreNotConflated(t *testing.T) {
+	for _, c := range []struct {
+		published string
+		newest    string
+		current   bool
+		why       string
+	}{
+		{"v1.2.3.4", "1.2.3.4-stable", true, "a leading v is spelling, not a different release"},
+		{"1.2.3.4-jf13-stable", "1.2.3.4-jf12-stable", true, "two lines of one version"},
+		{"1.2.3.0-stable", "1.2.3.4-stable", false, "a fourth component is part of the version"},
+		{"1.2.3.4-stable", "1.2.4.0-stable", false, "a newer version is a different release"},
+		{"nightly", "snapshot", false, "a tag with no version is compared whole"},
+		{"nightly", "nightly", true, "a tag with no version still matches itself"},
+	} {
+		body := published(versionEntry(declared, c.published, "10.11.0.0"))
+		err := Judge(body, []Expected{{Slug: "widget", Path: declared, Tag: c.newest}})
+		if c.current && err != nil {
+			t.Errorf("%s: %s against %s was refused: %v", c.why, c.newest, c.published, err)
+		}
+		if !c.current && err == nil {
+			t.Errorf("%s: %s against %s was read as current", c.why, c.newest, c.published)
+		}
+	}
+}
