@@ -156,12 +156,20 @@
     {
         "guid": "29e90267-52ee-4bec-b4fb-870b8f5ddc53",
         "name": "Playback Statistics",
-        "description": "Records what was played on this server and shows it back as statistics: usage over time, the clients and devices people play from, and how often the server had to transcode. Personal detail is visible only to the user it is about unless that user chooses otherwise, and server-wide views name nobody.",
+        "description": "Records what was played on this server, one row per finished play, in a SQLite file of its own. An administrator sets what is captured and for how long it is kept on the settings page. A signed-in user reads their own figures, their own year and their own consent over the server's API, and deletes their own history there; nobody reads another person's rows. No statistics page is shown in the dashboard yet.",
         "overview": "Playback statistics, kept private to the user they are about",
         "owner": "Flowfin",
         "category": "Administration",
         "imageUrl": "https://raw.githubusercontent.com/Flowfin/jellyfin-plugin-stats/master/img/logo.png",
         "versions": [
+            {
+                "version": "0.1.1.0",
+                "changelog": "0.1.1.0: Binds the SQLite stack the floor server of the 10.11 line ships, Microsoft.Data.Sqlite 9.0.10, so the plugin opens its store on a 10.11.0 server instead of recording nothing there. A save the plugin refuses no longer replaces the running configuration until a restart. Adds four aggregate reports an administrator reads over the API and two more routes a signed-in user opens about themselves, with day-by-day rollups behind them and a row fewer than two accounts stand behind withheld or folded. No statistics page is shown in the dashboard yet.\n0.1.0.0: First release on the 10.11 line. Records one row per finished play into a SQLite file of its own, with a settings page for what is captured and how long it is kept, and three routes a signed-in user opens about themselves: their year, their consent, and the deletion of their own history. Binds Microsoft.Data.Sqlite 9.0.11.0, which a 10.11.0 server does not ship, so on that server it loads and then records nothing; 0.1.1.0 repairs that.",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/Flowfin/jellyfin-plugin-stats/releases/download/0.1.1.0-stable/playback-statistics_0.1.1.0.zip",
+                "checksum": "a87deac3b6c0ef70c4d10a0aa52129fd",
+                "timestamp": "2026-09-07T02:34:27Z"
+            },
             {
                 "version": "0.1.0.0",
                 "changelog": "The entries for each release are in CHANGELOG.md in the repository.",
