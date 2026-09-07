@@ -1,0 +1,64 @@
+# The dependency update tool, which is the one route in this tree that says a
+# pin has gone stale.
+#
+# Every action in .github/workflows is pinned to a commit with its version
+# beside it, and zizmor refuses a ref that is not a hash; go.mod and go.sum hold
+# the module set still. Both of those stop an unnoticed change. Neither says
+# that a pinned commit or a required module now has a published advisory:
+# dependency-review reads the diff of a pull request, so a dependency sitting
+# still in the lock is read by nothing. This file is what reads it, and the
+# supply-chain analysis names its absence as a class of its own.
+#
+# One weekly, grouped pull request per ecosystem, which is the cadence the
+# planning issue for this alert class asks every board of the family to carry.
+# A week of bumps arrives as one request rather than ten, and a reader lands
+# one change instead of racing a queue. The group also keeps two actions that
+# are one thing together: the plugin board's own configuration records that
+# github/codeql-action/init and github/codeql-action/analyze were raised in two
+# separate requests, each carrying one of the two, and each failed alone with
+# `Loaded a configuration file for version '4.37.3', but running version
+# '4.37.4'`. A group over the whole ecosystem cannot split them.
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      go-modules:
+        patterns:
+          - "*"
+    # Hold a newly published version for 7 days before it may enter a pull
+    # request, so a release compromised between publish and adoption has time
+    # to surface in the advisory feeds first. GitHub's options reference says
+    # the hold is for version updates only and that it does not apply to
+    # security updates, so an advisory against a module already required here
+    # is proposed without waiting. The platform's own default is 3 days, which
+    # is why the number is written rather than left to it.
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      actions:
+        patterns:
+          - "*"
+    # What this hold reaches: a freshly published malicious version of an
+    # action, which then waits 7 days before it can be proposed here. Same
+    # carve-out as above: a security update is not held.
+    #
+    # What it does not reach, and no comment here should claim otherwise: a
+    # re-pointed tag, where an existing tag is moved onto a malicious commit.
+    # The release keeps its original publication date, so there is no new
+    # publication for a date-based hold to delay. What defends this tree
+    # against that class is the hash pin on every `uses:` plus the unpinned-uses
+    # audit in .github/workflows/zizmor.yml: a hash keeps resolving to the old
+    # commit after the tag moves, and the audit fails the build on a ref that is
+    # not a hash.
+    cooldown:
+      default-days: 7
